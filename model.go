@@ -58,14 +58,31 @@ func NewModelConfig(modelOptions ...ModelOption) *ModelConfig {
 			ConfigMap: NewSyncMap(),
 		},
 	}
-	// 将环境变量直接绑定到配置结构体，环境变量前缀：EINO_
-	// EINO_MODEL_TYPE: 模型类型
-	// EINO_MODEL_NAME: 模型名称
-	// EINO_BASE_URL: 服务地址
-	// EINO_API_KEY: API密钥
-	envconfig.Process("EINO", modelConfig)
+	modelConfig.initFromEnvironment()
 	ApplyOptions(modelConfig, modelOptions)
 	return modelConfig
+}
+
+// 将环境变量直接绑定到配置结构体，环境变量前缀：EINO_
+// EINO_MODEL_TYPE: 模型类型
+// EINO_MODEL_NAME: 模型名称
+// EINO_BASE_URL: 服务地址
+// EINO_API_KEY: API密钥
+func (modelConfig *ModelConfig) initFromEnvironment() {
+	if modelConfig == nil {
+		return
+	}
+	_ = envconfig.Process("EINO", modelConfig)
+	// 不同模型使用不同环境变量
+	BindVarFromEnv((*string)(&modelConfig.ModelType), "MODEL_TYPE")
+	if modelConfig.ModelType == ModelTypeUnknown {
+		return
+	}
+	prefix := string(modelConfig.ModelType)
+	BindVarFromEnv(&modelConfig.ModelName, "MODEL", prefix)
+	BindVarFromEnv(&modelConfig.BaseURL, "BASE_URL", prefix)
+	BindVarFromEnv(&modelConfig.APIKey, "API_KEY", prefix)
+	BindVarFromEnv(&modelConfig.ByAzure, "BY_AZURE", prefix)
 }
 
 // 模型选项
