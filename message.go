@@ -1,6 +1,8 @@
 package einolib
 
-import "github.com/cloudwego/eino/schema"
+import (
+	"github.com/cloudwego/eino/schema"
+)
 
 type MessageConfig struct {
 	RoleType           schema.RoleType
@@ -31,12 +33,36 @@ func NewMessages(messageConfigs ...*MessageConfig) []*schema.Message {
 }
 
 type MessagesTemplateConfig struct {
-	MessageConfig
+	RoleType            schema.RoleType
+	Content             string
+	ToolCalls           []schema.ToolCall
+	ToolCallID          string
+	ToolMessageOptions  []schema.ToolMessageOption
 	PlaceholderKey      string
 	PlaceholderOptional bool
 }
 
 func NewMessagesTemplates(messagesTemplateConfigs ...*MessagesTemplateConfig) []schema.MessagesTemplate {
 	messagesTemplates := make([]schema.MessagesTemplate, 0, len(messagesTemplateConfigs))
+	for _, mtc := range messagesTemplateConfigs {
+		if mtc == nil {
+			continue
+		}
+		if mtc.PlaceholderKey != "" {
+			placeholder := schema.MessagesPlaceholder(mtc.PlaceholderKey, mtc.PlaceholderOptional)
+			messagesTemplates = append(messagesTemplates, placeholder)
+		} else {
+			messages := NewMessages(&MessageConfig{
+				RoleType:           mtc.RoleType,
+				Content:            mtc.Content,
+				ToolCalls:          mtc.ToolCalls,
+				ToolCallID:         mtc.ToolCallID,
+				ToolMessageOptions: mtc.ToolMessageOptions,
+			})
+			for _, m := range messages {
+				messagesTemplates = append(messagesTemplates, m)
+			}
+		}
+	}
 	return messagesTemplates
 }
