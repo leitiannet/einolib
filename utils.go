@@ -45,12 +45,12 @@ func PrintJSON(obj interface{}, options *PrintJSONOptions) error {
 }
 
 // 从环境变量加载值到字符串指针，支持自动拼接前缀并转大写
-func BindVarFromEnv(target *string, key string, prefixs ...string) {
+func BindVarFromEnv(target *string, key string, prefixes ...string) {
 	if target == nil {
 		return
 	}
-	if len(prefixs) > 0 && prefixs[0] != "" {
-		key = fmt.Sprintf("%s_%s", prefixs[0], key)
+	if len(prefixes) > 0 && prefixes[0] != "" {
+		key = fmt.Sprintf("%s_%s", prefixes[0], key)
 	}
 	envKey := strings.ToUpper(key)
 	if val := os.Getenv(envKey); val != "" {

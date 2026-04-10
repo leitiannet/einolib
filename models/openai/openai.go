@@ -12,15 +12,17 @@ const (
 	ModelTypeOpenAI einolib.ModelType = "openai"
 )
 
-func init() {
-	_ = einolib.RegisterModelConstructFunc(ModelTypeOpenAI, func(ctx context.Context, modelConfig *einolib.ModelConfig, specificConfig interface{}) (model.ToolCallingChatModel, error) {
-		return openai.NewChatModel(ctx, &openai.ChatModelConfig{
-			Model:   modelConfig.ModelName,
-			BaseURL: modelConfig.BaseURL,
-			APIKey:  modelConfig.APIKey,
-			ByAzure: func() bool {
-				return modelConfig.ByAzure == "true"
-			}(),
-		})
+func NewOpenAIChatModel(ctx context.Context, modelConfig *einolib.ModelConfig, specificConfig interface{}) (model.ToolCallingChatModel, error) {
+	return openai.NewChatModel(ctx, &openai.ChatModelConfig{
+		Model:   modelConfig.ModelName,
+		BaseURL: modelConfig.BaseURL,
+		APIKey:  modelConfig.APIKey,
+		ByAzure: modelConfig.ByAzure == "true",
 	})
+}
+
+func init() {
+	if err := einolib.RegisterModelConstructFunc(ModelTypeOpenAI, NewOpenAIChatModel); err != nil {
+		einolib.GetLogger().Errorf("register model %s failed: %v", ModelTypeOpenAI, err)
+	}
 }

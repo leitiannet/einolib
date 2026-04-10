@@ -16,7 +16,7 @@ type ModelType string
 // 其他模型类型由models子包定义
 const ModelTypeUnknown ModelType = "" // 未知类型模型
 
-// 模型元信息
+// 模型描述
 type ModelDescriber struct {
 	ModelType ModelType // 模型类型
 }
@@ -37,7 +37,7 @@ func (md *ModelDescriber) Key() string {
 
 func (md *ModelDescriber) Validate() error {
 	if md.ModelType == ModelTypeUnknown {
-		return fmt.Errorf("modelType invalid: %s", md.ModelType)
+		return fmt.Errorf("modelType invalid: %q", md.ModelType)
 	}
 	return nil
 }
@@ -63,90 +63,47 @@ func NewModelConfig(modelOptions ...ModelOption) *ModelConfig {
 	return modelConfig
 }
 
-// 将环境变量直接绑定到配置结构体，环境变量前缀：EINO_
-// EINO_MODEL_TYPE: 模型类型
-// EINO_MODEL_NAME: 模型名称
-// EINO_BASE_URL: 服务地址
-// EINO_API_KEY: API密钥
+// 从环境变量加载配置，支持两级前缀（模型前缀优先级高于通用前缀）：
+// 通用前缀 EINO_: EINO_MODEL_TYPE, EINO_MODEL_NAME, EINO_BASE_URL, EINO_API_KEY, EINO_BY_AZURE
+// 模型前缀 {MODEL_TYPE}_: {MODEL_TYPE}_MODEL, {MODEL_TYPE}_BASE_URL, {MODEL_TYPE}_API_KEY, {MODEL_TYPE}_BY_AZURE
 func (modelConfig *ModelConfig) initFromEnvironment() {
 	if modelConfig == nil {
 		return
 	}
-	_ = envconfig.Process("EINO", modelConfig)
+	if err := envconfig.Process("EINO", modelConfig); err != nil {
+		logger.Warnf("load environment variables failed: %v", err)
+	}
 	// 不同模型使用不同环境变量
 	BindVarFromEnv((*string)(&modelConfig.ModelType), "MODEL_TYPE")
-	if modelConfig.ModelType == ModelTypeUnknown {
-		return
+	if modelConfig.ModelType != ModelTypeUnknown {
+		prefix := string(modelConfig.ModelType)
+		BindVarFromEnv(&modelConfig.ModelName, "MODEL", prefix)
+		BindVarFromEnv(&modelConfig.BaseURL, "BASE_URL", prefix)
+		BindVarFromEnv(&modelConfig.APIKey, "API_KEY", prefix)
+		BindVarFromEnv(&modelConfig.ByAzure, "BY_AZURE", prefix)
 	}
-	prefix := string(modelConfig.ModelType)
-	BindVarFromEnv(&modelConfig.ModelName, "MODEL", prefix)
-	BindVarFromEnv(&modelConfig.BaseURL, "BASE_URL", prefix)
-	BindVarFromEnv(&modelConfig.APIKey, "API_KEY", prefix)
-	BindVarFromEnv(&modelConfig.ByAzure, "BY_AZURE", prefix)
 }
 
 // 模型选项
 type ModelOption func(modelConfig *ModelConfig)
 
-func WithModelComponentConfig(modelType ModelType, value interface{}) ModelOption {
-	return func(modelConfig *ModelConfig) {
-		if modelConfig != nil {
-			modelConfig.SetConfig(NewModelDescriber(modelType), value)
+var (
+	WithModelType = MakeOption(func(c *ModelConfig, v ModelType) { c.ModelType = v })
+	WithModelName = MakeOption(func(c *ModelConfig, v string) { c.ModelName = v })
+	WithBaseURL   = MakeOption(func(c *ModelConfig, v string) { c.BaseURL = v })
+	WithAPIKey    = MakeOption(func(c *ModelConfig, v string) { c.APIKey = v })
+	WithByAzure   = MakeOption(func(c *ModelConfig, v string) { c.ByAzure = v })
+	WithByAzureBool = MakeOption(func(c *ModelConfig, v bool) {
+		if v {
+			c.ByAzure = "true"
+		} else {
+			c.ByAzure = "false"
 		}
-	}
-}
-
-func WithModelType(modelType ModelType) ModelOption {
-	return func(modelConfig *ModelConfig) {
-		if modelConfig != nil {
-			modelConfig.ModelType = modelType
-		}
-	}
-}
-
-func WithModelName(modelName string) ModelOption {
-	return func(modelConfig *ModelConfig) {
-		if modelConfig != nil {
-			modelConfig.ModelName = modelName
-		}
-	}
-}
-
-func WithBaseURL(baseURL string) ModelOption {
-	return func(modelConfig *ModelConfig) {
-		if modelConfig != nil {
-			modelConfig.BaseURL = baseURL
-		}
-	}
-}
-
-func WithAPIKey(apiKey string) ModelOption {
-	return func(modelConfig *ModelConfig) {
-		if modelConfig != nil {
-			modelConfig.APIKey = apiKey
-		}
-	}
-}
-
-func WithByAzure(byAzure string) ModelOption {
-	return func(modelConfig *ModelConfig) {
-		if modelConfig != nil {
-			modelConfig.ByAzure = byAzure
-		}
-	}
-}
-
-func WithByAzureBool(byAzure bool) ModelOption {
-	return func(modelConfig *ModelConfig) {
-		if modelConfig != nil {
-			if byAzure {
-				modelConfig.ByAzure = "true"
-			} else {
-				modelConfig.ByAzure = "false"
-			}
-		}
-	}
-}
+	})
+	WithModelComponentConfig = MakeOption2(func(c *ModelConfig, modelType ModelType, value interface{}) {
+		c.SetConfig(NewModelDescriber(modelType), value)
+	})
+)
 
 type ModelConstructor interface {
 	Construct(ctx context.Context, modelConfig *ModelConfig) (model.ToolCallingChatModel, error)
@@ -171,7 +128,7 @@ func RegisterModelConstructFunc(modelType ModelType, modelConstructFunc ModelCon
 	return RegisterModelConstructor(modelDesc, modelConstructor)
 }
 
-func GetChatModel(ctx context.Context, modelOptions ...ModelOption) (model.ToolCallingChatModel, error) {
+func NewChatModel(ctx context.Context, modelOptions ...ModelOption) (model.ToolCallingChatModel, error) {
 	modelConfig := NewModelConfig(modelOptions...)
 	modelConstructor, err := GetModelConstructor(NewModelDescriber(modelConfig.ModelType))
 	if err != nil {
@@ -180,26 +137,28 @@ func GetChatModel(ctx context.Context, modelOptions ...ModelOption) (model.ToolC
 	return modelConstructor.Construct(ctx, modelConfig)
 }
 
-func MustGetChatModel(ctx context.Context, modelOptions ...ModelOption) model.ToolCallingChatModel {
-	chatModel, err := GetChatModel(ctx, modelOptions...)
+func MustNewChatModel(ctx context.Context, modelOptions ...ModelOption) model.ToolCallingChatModel {
+	chatModel, err := NewChatModel(ctx, modelOptions...)
 	if err != nil {
-		panic(fmt.Sprintf("MustGetChatModel failed: %v", err))
+		panic(err)
 	}
 	if chatModel == nil {
-		panic("MustGetChatModel failed: instance is nil")
+		panic("MustNewChatModel failed: instance is nil")
 	}
 	return chatModel
 }
 
-// 获取本地ollama模型
-func GetLocalChatModel(ctx context.Context, modelOptions ...ModelOption) (model.ToolCallingChatModel, error) {
-	// WithModelType("ollama")最后应用，保证ModelType始终为ollama，避免被其他ModelOption覆盖
-	combinedOptions := append(
-		[]ModelOption{WithModelName("qwen2:7b"), WithBaseURL("http://localhost:11434")}, // 默认值（可被覆盖）
-		modelOptions...,
-	)
-	combinedOptions = append(combinedOptions,
-		WithModelType("ollama"),
-	)
-	return GetChatModel(ctx, combinedOptions...)
+const (
+	defaultLocalModelType = "ollama"
+	defaultLocalModelName = "qwen2:7b"
+	defaultLocalBaseURL   = "http://localhost:11434"
+)
+
+// 创建本地模型
+func NewLocalChatModel(ctx context.Context, modelOptions ...ModelOption) (model.ToolCallingChatModel, error) {
+	// 默认值（均可被用户选项覆盖） + 用户选项
+	combinedOptions := make([]ModelOption, 0, len(modelOptions)+3)
+	combinedOptions = append(combinedOptions, WithModelType(defaultLocalModelType), WithModelName(defaultLocalModelName), WithBaseURL(defaultLocalBaseURL))
+	combinedOptions = append(combinedOptions, modelOptions...)
+	return NewChatModel(ctx, combinedOptions...)
 }

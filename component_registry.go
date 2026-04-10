@@ -18,24 +18,25 @@ type ComponentValidator interface {
 
 // 通用组件注册器
 type ComponentRegistry[D ComponentDescriber, V any] struct {
-	descMap  map[string]D // 存储描述信息，键为ComponentDescriber.Key()
-	valueMap map[string]V // 存储值信息，与descMap一一对应
+	valueMap map[string]V // 存储值信息，键为ComponentDescriber.Key()
 	mu       sync.RWMutex // 读写锁
 }
 
 func NewComponentRegistry[D ComponentDescriber, V any]() *ComponentRegistry[D, V] {
 	return &ComponentRegistry[D, V]{
-		descMap:  make(map[string]D),
 		valueMap: make(map[string]V),
 	}
 }
 
-// 获取
+// 根据描述获取值
 func (r *ComponentRegistry[D, V]) Get(desc D) (V, error) {
 	var zero V
+	if any(desc) == nil {
+		return zero, fmt.Errorf("desc is nil")
+	}
 	if validator, ok := any(desc).(ComponentValidator); ok {
 		if err := validator.Validate(); err != nil {
-			return zero, fmt.Errorf("validate failed: %w", err)
+			return zero, fmt.Errorf("validate failed: %v", err)
 		}
 	}
 	key := desc.Key()
@@ -49,11 +50,14 @@ func (r *ComponentRegistry[D, V]) Get(desc D) (V, error) {
 	return value, nil
 }
 
-// 注册
+// 注册组件
 func (r *ComponentRegistry[D, V]) Register(desc D, value V) error {
+	if any(desc) == nil {
+		return fmt.Errorf("desc is nil")
+	}
 	if validator, ok := any(desc).(ComponentValidator); ok {
 		if err := validator.Validate(); err != nil {
-			return fmt.Errorf("validate failed: %w", err)
+			return fmt.Errorf("validate failed: %v", err)
 		}
 	}
 	if any(value) == nil {
@@ -66,7 +70,6 @@ func (r *ComponentRegistry[D, V]) Register(desc D, value V) error {
 	if _, exists := r.valueMap[key]; exists {
 		return fmt.Errorf("value already exists: %s", desc)
 	}
-	r.descMap[key] = desc
 	r.valueMap[key] = value
 	return nil
 }

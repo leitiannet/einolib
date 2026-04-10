@@ -2,7 +2,6 @@ package duckduckgosearch
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/cloudwego/eino-ext/components/tool/duckduckgo/v2"
@@ -15,36 +14,34 @@ const (
 )
 
 type DuckDuckGoSearchToolConfig struct {
-	Config *duckduckgo.Config // 配置参数
+	duckduckgo.Config // 内嵌duckduckgo.Config
 }
 
 func NewDuckDuckGoSearchToolConfig(duckDuckGoSearchToolOptions ...DuckDuckGoSearchToolOption) *DuckDuckGoSearchToolConfig {
-	duckDuckGoSearchToolConfig := &DuckDuckGoSearchToolConfig{
-		Config: &duckduckgo.Config{
-			Region:     duckduckgo.RegionWT,
-			Timeout:    10 * time.Second,
-			MaxResults: 20, // Limit to return 20 results
-		},
-	}
+	duckDuckGoSearchToolConfig := &DuckDuckGoSearchToolConfig{}
+	duckDuckGoSearchToolConfig.Region = duckduckgo.RegionWT
+	duckDuckGoSearchToolConfig.Timeout = 10 * time.Second
+	duckDuckGoSearchToolConfig.MaxResults = 20
 	einolib.ApplyOptions(duckDuckGoSearchToolConfig, duckDuckGoSearchToolOptions)
 	return duckDuckGoSearchToolConfig
 }
 
-type DuckDuckGoSearchToolOption func(*DuckDuckGoSearchToolConfig)
+type DuckDuckGoSearchToolOption func(duckDuckGoSearchToolConfig *DuckDuckGoSearchToolConfig)
 
-func WithConfig(config *duckduckgo.Config) DuckDuckGoSearchToolOption {
-	return func(duckDuckGoSearchToolConfig *DuckDuckGoSearchToolConfig) {
-		if duckDuckGoSearchToolConfig != nil {
-			duckDuckGoSearchToolConfig.Config = config
-		}
-	}
-}
+var (
+	WithToolName   = einolib.MakeOption(func(c *DuckDuckGoSearchToolConfig, v string) { c.ToolName = v })
+	WithToolDesc   = einolib.MakeOption(func(c *DuckDuckGoSearchToolConfig, v string) { c.ToolDesc = v })
+	WithTimeout    = einolib.MakeOption(func(c *DuckDuckGoSearchToolConfig, v time.Duration) { c.Timeout = v })
+	WithMaxResults = einolib.MakeOption(func(c *DuckDuckGoSearchToolConfig, v int) { c.MaxResults = v })
+	WithRegion     = einolib.MakeOption(func(c *DuckDuckGoSearchToolConfig, v duckduckgo.Region) { c.Region = v })
+)
 
-func getDuckDuckGoSearchTool(ctx context.Context, duckDuckGoSearchToolConfig *DuckDuckGoSearchToolConfig) ([]tool.BaseTool, error) {
-	if duckDuckGoSearchToolConfig == nil {
-		return nil, fmt.Errorf("duckDuckGoSearchToolConfig nil")
+func NewDuckDuckGoSearchTool(ctx context.Context, toolConfig *einolib.ToolConfig, specificConfig interface{}) ([]tool.BaseTool, error) {
+	duckDuckGoSearchToolConfig, err := einolib.ParseSpecificConfig(specificConfig, func() *DuckDuckGoSearchToolConfig { return NewDuckDuckGoSearchToolConfig() })
+	if err != nil {
+		return nil, err
 	}
-	toolInstance, err := duckduckgo.NewTextSearchTool(ctx, duckDuckGoSearchToolConfig.Config)
+	toolInstance, err := duckduckgo.NewTextSearchTool(ctx, &duckDuckGoSearchToolConfig.Config)
 	if err != nil {
 		return nil, err
 	}
@@ -52,14 +49,7 @@ func getDuckDuckGoSearchTool(ctx context.Context, duckDuckGoSearchToolConfig *Du
 }
 
 func init() {
-	_ = einolib.RegisterToolConstructFunc(einolib.ToolTypeBuiltin, DuckDuckGoSearchToolName, func(ctx context.Context, toolConfig *einolib.ToolConfig, specificConfig interface{}) ([]tool.BaseTool, error) {
-		duckDuckGoSearchToolConfig := NewDuckDuckGoSearchToolConfig()
-		if specificConfig != nil {
-			duckDuckGoSearchToolConfig, _ = specificConfig.(*DuckDuckGoSearchToolConfig)
-			if duckDuckGoSearchToolConfig == nil {
-				return nil, fmt.Errorf("duckDuckGoSearchToolConfig is nil")
-			}
-		}
-		return getDuckDuckGoSearchTool(ctx, duckDuckGoSearchToolConfig)
-	})
+	if err := einolib.RegisterToolConstructFunc(einolib.ToolTypeBuiltin, DuckDuckGoSearchToolName, NewDuckDuckGoSearchTool); err != nil {
+		einolib.GetLogger().Errorf("register tool %s failed: %v", DuckDuckGoSearchToolName, err)
+	}
 }

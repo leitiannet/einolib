@@ -10,7 +10,6 @@ import (
 )
 
 const (
-	// 核心工具集标识，聚合add_todo、update_todo、list_todo
 	CoreTodoToolName   = "core_todo"
 	AddTodoToolName    = "add_todo"
 	AddTodoToolDesc    = "Add a todo item"
@@ -65,14 +64,12 @@ func (lt *ListTodoTool) InvokableRun(ctx context.Context, argumentsInJSON string
 	return `{"todos": [{"id": "1", "content": "在2024年12月10日之前完成Eino项目演示文稿的准备工作", "started_at": 1717401600, "deadline": 1717488000, "done": false}]}`, nil
 }
 
-func getTodoTool(names ...string) ([]tool.BaseTool, error) {
-	toolInstances := make([]tool.BaseTool, 0)
+func getTodoTools(names ...string) ([]tool.BaseTool, error) {
+	toolInstances := make([]tool.BaseTool, 0, len(names))
 	for _, name := range names {
 		var toolInstance tool.BaseTool
-		var err error
 		switch name {
 		case AddTodoToolName:
-			// 使用 NewTool 创建工具
 			info := &schema.ToolInfo{
 				Name: AddTodoToolName,
 				Desc: AddTodoToolDesc,
@@ -93,19 +90,14 @@ func getTodoTool(names ...string) ([]tool.BaseTool, error) {
 				}),
 			}
 			toolInstance = utils.NewTool(info, AddTodoFunc)
-			err = nil
 		case UpdateTodoToolName:
-			// 使用 InferTool 创建工具
-			toolInstance, err = utils.InferTool(
-				UpdateTodoToolName,
-				UpdateTodoToolDesc,
-				UpdateTodoFunc)
+			t, err := utils.InferTool(UpdateTodoToolName, UpdateTodoToolDesc, UpdateTodoFunc)
+			if err != nil {
+				return nil, err
+			}
+			toolInstance = t
 		case ListTodoToolName:
 			toolInstance = &ListTodoTool{}
-			err = nil
-		}
-		if err != nil {
-			return nil, err
 		}
 		if toolInstance != nil {
 			toolInstances = append(toolInstances, toolInstance)
@@ -114,17 +106,34 @@ func getTodoTool(names ...string) ([]tool.BaseTool, error) {
 	return toolInstances, nil
 }
 
+func NewCoreTodoTool(_ context.Context, _ *einolib.ToolConfig, _ interface{}) ([]tool.BaseTool, error) {
+	return getTodoTools(AddTodoToolName, UpdateTodoToolName, ListTodoToolName)
+}
+
+func NewAddTodoTool(_ context.Context, _ *einolib.ToolConfig, _ interface{}) ([]tool.BaseTool, error) {
+	return getTodoTools(AddTodoToolName)
+}
+
+func NewUpdateTodoTool(_ context.Context, _ *einolib.ToolConfig, _ interface{}) ([]tool.BaseTool, error) {
+	return getTodoTools(UpdateTodoToolName)
+}
+
+func NewListTodoTool(_ context.Context, _ *einolib.ToolConfig, _ interface{}) ([]tool.BaseTool, error) {
+	return getTodoTools(ListTodoToolName)
+}
+
 func init() {
-	_ = einolib.RegisterToolConstructFunc(einolib.ToolTypeCustom, CoreTodoToolName, func(ctx context.Context, toolConfig *einolib.ToolConfig, specificConfig interface{}) ([]tool.BaseTool, error) {
-		return getTodoTool(AddTodoToolName, UpdateTodoToolName, ListTodoToolName)
-	})
-	_ = einolib.RegisterToolConstructFunc(einolib.ToolTypeCustom, AddTodoToolName, func(ctx context.Context, toolConfig *einolib.ToolConfig, specificConfig interface{}) ([]tool.BaseTool, error) {
-		return getTodoTool(AddTodoToolName)
-	})
-	_ = einolib.RegisterToolConstructFunc(einolib.ToolTypeCustom, UpdateTodoToolName, func(ctx context.Context, toolConfig *einolib.ToolConfig, specificConfig interface{}) ([]tool.BaseTool, error) {
-		return getTodoTool(UpdateTodoToolName)
-	})
-	_ = einolib.RegisterToolConstructFunc(einolib.ToolTypeCustom, ListTodoToolName, func(ctx context.Context, toolConfig *einolib.ToolConfig, specificConfig interface{}) ([]tool.BaseTool, error) {
-		return getTodoTool(ListTodoToolName)
-	})
+	for _, reg := range []struct {
+		name string
+		fn   einolib.ToolConstructFunc
+	}{
+		{CoreTodoToolName, NewCoreTodoTool},
+		{AddTodoToolName, NewAddTodoTool},
+		{UpdateTodoToolName, NewUpdateTodoTool},
+		{ListTodoToolName, NewListTodoTool},
+	} {
+		if err := einolib.RegisterToolConstructFunc(einolib.ToolTypeCustom, reg.name, reg.fn); err != nil {
+			einolib.GetLogger().Errorf("register tool %s failed: %v", reg.name, err)
+		}
+	}
 }

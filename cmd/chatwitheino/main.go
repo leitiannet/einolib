@@ -32,7 +32,7 @@ func main() {
 	}
 	//
 	ctx := context.Background()
-	cm, err := einolib.GetChatModel(ctx)
+	cm, err := einolib.NewChatModel(ctx)
 	if err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

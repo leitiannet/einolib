@@ -12,12 +12,16 @@ const (
 	ModelTypeARK einolib.ModelType = "ark"
 )
 
-func init() {
-	_ = einolib.RegisterModelConstructFunc(ModelTypeARK, func(ctx context.Context, modelConfig *einolib.ModelConfig, specificConfig interface{}) (model.ToolCallingChatModel, error) {
-		return ark.NewChatModel(ctx, &ark.ChatModelConfig{
-			Model:   modelConfig.ModelName,
-			BaseURL: modelConfig.BaseURL,
-			APIKey:  modelConfig.APIKey,
-		})
+func NewARKChatModel(ctx context.Context, modelConfig *einolib.ModelConfig, specificConfig interface{}) (model.ToolCallingChatModel, error) {
+	return ark.NewChatModel(ctx, &ark.ChatModelConfig{
+		Model:   modelConfig.ModelName,
+		BaseURL: modelConfig.BaseURL,
+		APIKey:  modelConfig.APIKey,
 	})
+}
+
+func init() {
+	if err := einolib.RegisterModelConstructFunc(ModelTypeARK, NewARKChatModel); err != nil {
+		einolib.GetLogger().Errorf("register model %s failed: %v", ModelTypeARK, err)
+	}
 }

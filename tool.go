@@ -2,6 +2,7 @@ package einolib
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -59,7 +60,10 @@ func (td *ToolDescriber) Key() string {
 
 func (td *ToolDescriber) Validate() error {
 	if valid, ok := validToolTypeMap[td.ToolType]; !ok || !valid {
-		return fmt.Errorf("toolType invalid: %s", td.ToolType)
+		return fmt.Errorf("toolType invalid: %q", td.ToolType)
+	}
+	if td.ToolName == "" {
+		return fmt.Errorf("toolName invalid: %q", td.ToolName)
 	}
 	return nil
 }
@@ -71,15 +75,11 @@ type ToolConfig struct {
 	ToolType        ToolType // 工具类型
 }
 
-func NewToolConfig(toolType ToolType, toolName string, toolOptions ...ToolOption) *ToolConfig {
+func NewToolConfig(toolOptions ...ToolOption) *ToolConfig {
 	toolConfig := &ToolConfig{
 		ComponentConfig: ComponentConfig{
 			ConfigMap: NewSyncMap(),
 		},
-		ToolInfo: schema.ToolInfo{
-			Name: toolName,
-		},
-		ToolType: toolType,
 	}
 	ApplyOptions(toolConfig, toolOptions)
 	return toolConfig
@@ -88,21 +88,13 @@ func NewToolConfig(toolType ToolType, toolName string, toolOptions ...ToolOption
 // 工具选项
 type ToolOption func(toolConfig *ToolConfig)
 
-func WithToolComponentConfig(toolType ToolType, toolName string, value interface{}) ToolOption {
-	return func(toolConfig *ToolConfig) {
-		if toolConfig != nil {
-			toolConfig.SetConfig(NewToolDescriber(toolType, toolName), value)
-		}
-	}
-}
-
-func WithToolType(toolType ToolType) ToolOption {
-	return func(toolConfig *ToolConfig) {
-		if toolConfig != nil {
-			toolConfig.ToolType = toolType
-		}
-	}
-}
+var (
+	WithToolType = MakeOption(func(c *ToolConfig, v ToolType) { c.ToolType = v })
+	WithToolName = MakeOption(func(c *ToolConfig, v string) { c.Name = v })
+	WithToolComponentConfig = MakeOption3(func(c *ToolConfig, toolType ToolType, toolName string, value interface{}) {
+		c.SetConfig(NewToolDescriber(toolType, toolName), value)
+	})
+)
 
 // 工具构造器接口
 type ToolConstructor interface {
@@ -117,7 +109,15 @@ var toolConstructorRegistry = NewComponentRegistry[*ToolDescriber, ToolConstruct
 
 // 获取工具构造器
 func GetToolConstructor(toolDesc *ToolDescriber) (ToolConstructor, error) {
-	return toolConstructorRegistry.Get(toolDesc)
+	constructor, err := toolConstructorRegistry.Get(toolDesc)
+	if err != nil && toolDesc.ToolName != GeneralToolName {
+		generalConstructor, generalErr := toolConstructorRegistry.Get(NewToolDescriber(toolDesc.ToolType, GeneralToolName))
+		if generalErr != nil {
+			return constructor, err
+		}
+		return generalConstructor, nil
+	}
+	return constructor, err
 }
 
 // 注册工具构造器
@@ -132,8 +132,8 @@ func RegisterToolConstructFunc(toolType ToolType, toolName string, toolConstruct
 	return RegisterToolConstructor(toolDesc, toolConstructor)
 }
 
-func GetTool(ctx context.Context, toolType ToolType, toolName string, toolOptions ...ToolOption) ([]tool.BaseTool, []*schema.ToolInfo, error) {
-	toolConfig := NewToolConfig(toolType, toolName, toolOptions...)
+func GetTool(ctx context.Context, toolOptions ...ToolOption) ([]tool.BaseTool, []*schema.ToolInfo, error) {
+	toolConfig := NewToolConfig(toolOptions...)
 	if toolConfig.ToolType != ToolTypeUnknown {
 		return getToolByType(ctx, toolConfig.ToolType, toolConfig)
 	}
@@ -143,7 +143,7 @@ func GetTool(ctx context.Context, toolType ToolType, toolName string, toolOption
 		allToolMu sync.Mutex
 		allTools  []tool.BaseTool
 		allInfos  []*schema.ToolInfo
-		firstErr  error
+		allErrs   []error
 	)
 	for _, toolType := range validToolTypes {
 		wg.Add(1)
@@ -153,9 +153,7 @@ func GetTool(ctx context.Context, toolType ToolType, toolName string, toolOption
 			allToolMu.Lock()
 			defer allToolMu.Unlock()
 			if err != nil {
-				if firstErr == nil {
-					firstErr = err
-				}
+				allErrs = append(allErrs, fmt.Errorf("[%s] %v", t, err))
 				return
 			}
 			if len(typeTools) > 0 {
@@ -165,21 +163,20 @@ func GetTool(ctx context.Context, toolType ToolType, toolName string, toolOption
 		}(toolType)
 	}
 	wg.Wait()
-	if len(allTools) == 0 && firstErr != nil {
-		return nil, nil, firstErr
+	// 只要拿到一个工具即视为成功（部分类型失败静默忽略）
+	if len(allTools) > 0 {
+		return allTools, allInfos, nil
 	}
-	return allTools, allInfos, nil
+	if len(allErrs) > 0 {
+		return nil, nil, errors.Join(allErrs...)
+	}
+	return nil, nil, nil
 }
 
 func getToolByType(ctx context.Context, toolType ToolType, toolConfig *ToolConfig) ([]tool.BaseTool, []*schema.ToolInfo, error) {
 	toolConstructor, err := GetToolConstructor(NewToolDescriber(toolType, toolConfig.Name))
 	if err != nil {
-		if toolType == ToolTypeMCP && toolConfig.Name != "" {
-			toolConstructor, err = GetToolConstructor(NewToolDescriber(toolType, GeneralToolName))
-		}
-		if err != nil {
-			return nil, nil, err
-		}
+		return nil, nil, err
 	}
 	tools, err := toolConstructor.Construct(ctx, toolConfig)
 	if err != nil {
@@ -192,8 +189,11 @@ func getToolByType(ctx context.Context, toolType ToolType, toolConfig *ToolConfi
 			continue
 		}
 		outTools = append(outTools, t)
-		info, _ := t.Info(ctx) // 可能为nil
-		infos = append(infos, info)
+		info, infoErr := t.Info(ctx)
+		if infoErr != nil {
+			logger.Warnf("get tool info failed: %v", infoErr)
+		}
+		infos = append(infos, info) // nil表示没有工具信息
 	}
 	return outTools, infos, nil
 }

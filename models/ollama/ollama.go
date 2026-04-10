@@ -12,11 +12,15 @@ const (
 	ModelTypeOllama einolib.ModelType = "ollama"
 )
 
-func init() {
-	_ = einolib.RegisterModelConstructFunc(ModelTypeOllama, func(ctx context.Context, modelConfig *einolib.ModelConfig, specificConfig interface{}) (model.ToolCallingChatModel, error) {
-		return ollama.NewChatModel(ctx, &ollama.ChatModelConfig{
-			Model:   modelConfig.ModelName,
-			BaseURL: modelConfig.BaseURL,
-		})
+func NewOllamaChatModel(ctx context.Context, modelConfig *einolib.ModelConfig, specificConfig interface{}) (model.ToolCallingChatModel, error) {
+	return ollama.NewChatModel(ctx, &ollama.ChatModelConfig{
+		Model:   modelConfig.ModelName,
+		BaseURL: modelConfig.BaseURL,
 	})
+}
+
+func init() {
+	if err := einolib.RegisterModelConstructFunc(ModelTypeOllama, NewOllamaChatModel); err != nil {
+		einolib.GetLogger().Errorf("register model %s failed: %v", ModelTypeOllama, err)
+	}
 }

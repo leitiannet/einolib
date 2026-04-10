@@ -12,15 +12,19 @@ import (
 )
 
 func main() {
-	mustPrintToolInfos(einolib.ToolTypeCustom, todo.CoreTodoToolName)
-	mustPrintToolInfos(einolib.ToolTypeBuiltin, duckduckgosearch.DuckDuckGoSearchToolName)
+	ctx := einolib.WithCloser(context.Background())
+	defer einolib.CloseCloser(ctx)
+
+	mustPrintToolInfos(ctx, einolib.ToolTypeCustom, todo.CoreTodoToolName)
+	mustPrintToolInfos(ctx, einolib.ToolTypeBuiltin, duckduckgosearch.DuckDuckGoSearchToolName)
 	mcpToolConfig := einolibmcp.NewMCPToolConfig(einolibmcp.WithBaseURL("http://localhost:3000/sse"))
-	mustPrintToolInfos(einolib.ToolTypeMCP, "mcp_weather_tool",
+	mustPrintToolInfos(ctx, einolib.ToolTypeMCP, "mcp_weather_tool",
 		einolib.WithToolComponentConfig(einolib.ToolTypeMCP, einolib.GeneralToolName, mcpToolConfig))
 }
 
-func mustPrintToolInfos(toolType einolib.ToolType, toolName string, opts ...einolib.ToolOption) {
-	_, infos, err := einolib.GetTool(context.TODO(), toolType, toolName, opts...)
+func mustPrintToolInfos(ctx context.Context, toolType einolib.ToolType, toolName string, opts ...einolib.ToolOption) {
+	opts = append([]einolib.ToolOption{einolib.WithToolType(toolType), einolib.WithToolName(toolName)}, opts...)
+	_, infos, err := einolib.GetTool(ctx, opts...)
 	if err != nil {
 		panic(err)
 	}

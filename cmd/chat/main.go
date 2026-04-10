@@ -31,7 +31,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	chatModel, err := einolib.GetLocalChatModel(ctx)
+	chatModel, err := einolib.NewLocalChatModel(ctx)
 	if err != nil {
 		panic(err)
 	}

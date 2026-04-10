@@ -1,1 +1,1 @@
-对 Eino 的模型（Chat Model）和工具（Tool）进行统一封装
+einolib 是对 cloudwego/eino 框架的封装库，采用注册中心 + 选项模式
