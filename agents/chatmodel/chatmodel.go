@@ -10,6 +10,7 @@ import (
 	"github.com/leitiannet/einolib"
 )
 
+// ChatModelAgent是Eino ADK中一个核心预构建的Agent，它封装了与大语言模型（LLM）进行交互、并支持使用工具来完成任务的复杂逻辑，内置ReAct模式
 const (
 	AgentTypeChatModel einolib.AgentType = "chatmodel"
 )
@@ -27,14 +28,17 @@ func NewChatModelAgentConfig(chatModelAgentOptions ...ChatModelAgentOption) *Cha
 type ChatModelAgentOption func(chatModelAgentConfig *ChatModelAgentConfig)
 
 var (
-	WithName          = einolib.MakeOption(func(c *ChatModelAgentConfig, v string) { c.Name = v })
-	WithDescription   = einolib.MakeOption(func(c *ChatModelAgentConfig, v string) { c.Description = v })
-	WithInstruction   = einolib.MakeOption(func(c *ChatModelAgentConfig, v string) { c.Instruction = v })
-	WithModel         = einolib.MakeOption(func(c *ChatModelAgentConfig, v model.ToolCallingChatModel) { c.Model = v })
-	WithToolsConfig   = einolib.MakeOption(func(c *ChatModelAgentConfig, v adk.ToolsConfig) { c.ToolsConfig = v })
-	WithExit          = einolib.MakeOption(func(c *ChatModelAgentConfig, v tool.BaseTool) { c.Exit = v })
-	WithOutputKey     = einolib.MakeOption(func(c *ChatModelAgentConfig, v string) { c.OutputKey = v })
-	WithMaxIterations = einolib.MakeOption(func(c *ChatModelAgentConfig, v int) { c.MaxIterations = v })
+	WithName             = einolib.MakeOption(func(c *ChatModelAgentConfig, v string) { c.Name = v })
+	WithDescription      = einolib.MakeOption(func(c *ChatModelAgentConfig, v string) { c.Description = v })
+	WithInstruction      = einolib.MakeOption(func(c *ChatModelAgentConfig, v string) { c.Instruction = v })
+	WithModel            = einolib.MakeOption(func(c *ChatModelAgentConfig, v model.ToolCallingChatModel) { c.Model = v })
+	WithToolsConfig      = einolib.MakeOption(func(c *ChatModelAgentConfig, v adk.ToolsConfig) { c.ToolsConfig = v })
+	WithExit             = einolib.MakeOption(func(c *ChatModelAgentConfig, v tool.BaseTool) { c.Exit = v })
+	WithOutputKey        = einolib.MakeOption(func(c *ChatModelAgentConfig, v string) { c.OutputKey = v })
+	WithMaxIterations    = einolib.MakeOption(func(c *ChatModelAgentConfig, v int) { c.MaxIterations = v })
+	WithMiddlewares      = einolib.MakeAppendOption(func(c *ChatModelAgentConfig) *[]adk.AgentMiddleware { return &c.Middlewares })
+	WithHandlers         = einolib.MakeAppendOption(func(c *ChatModelAgentConfig) *[]adk.ChatModelAgentMiddleware { return &c.Handlers })
+	WithModelRetryConfig = einolib.MakeOption(func(c *ChatModelAgentConfig, v *adk.ModelRetryConfig) { c.ModelRetryConfig = v })
 )
 
 func NewChatModelAgent(ctx context.Context, agentConfig *einolib.AgentConfig, specificConfig interface{}) (adk.Agent, error) {

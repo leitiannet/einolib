@@ -9,6 +9,7 @@ import (
 	"github.com/cloudwego/eino/schema"
 	"github.com/leitiannet/einolib"
 	"github.com/leitiannet/einolib/agents/chatmodel"
+	mwlog "github.com/leitiannet/einolib/middlewares/log"
 	_ "github.com/leitiannet/einolib/models"
 	_ "github.com/leitiannet/einolib/tools"
 	"github.com/leitiannet/einolib/tools/custom/booksearch"
@@ -28,7 +29,7 @@ func main() {
 		panic("empty tool list")
 	}
 	// 创建模型
-	model, err := einolib.NewLocalChatModel(ctx)
+	chatModel, err := einolib.NewLocalChatModel(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -39,10 +40,12 @@ func main() {
 		einolib.WithAgentComponentConfig(chatmodel.NewChatModelAgentConfig(
 			chatmodel.WithDescription("An agent that can recommend books"),
 			chatmodel.WithInstruction(`You are an expert book recommender. Based on the user's request, use the "search_book" tool to find relevant books. Finally, present the results to the user.`),
-			chatmodel.WithModel(model),
+			chatmodel.WithModel(chatModel),
 			chatmodel.WithToolsConfig(adk.ToolsConfig{
 				ToolsNodeConfig: compose.ToolsNodeConfig{Tools: tools},
 			}),
+			chatmodel.WithMiddlewares(mwlog.AgentMiddleware()),
+			chatmodel.WithHandlers(mwlog.NewChatModelAgentMiddleware()),
 		)),
 	)
 	if err != nil {
