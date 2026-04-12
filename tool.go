@@ -19,19 +19,17 @@ const (
 	ToolTypeCustom  ToolType = "custom"  // 用户定义工具
 	ToolTypeBuiltin ToolType = "builtin" // 官方内置工具
 	ToolTypeMCP     ToolType = "mcp"     // MCP协议工具
-	ToolTypeAll     ToolType = "*"       // 所有类型工具
 )
 
 // 合法的工具类型列表
 var validToolTypes = []ToolType{ToolTypeCustom, ToolTypeBuiltin, ToolTypeMCP}
 
 var validToolTypeMap = func() map[ToolType]bool {
-	m := make(map[ToolType]bool, len(validToolTypes)+2)
+	m := make(map[ToolType]bool, len(validToolTypes)+1)
 	for _, t := range validToolTypes {
 		m[t] = true
 	}
 	m[ToolTypeUnknown] = false
-	m[ToolTypeAll] = false
 	return m
 }()
 
@@ -89,10 +87,19 @@ func NewToolConfig(toolOptions ...ToolOption) *ToolConfig {
 type ToolOption func(toolConfig *ToolConfig)
 
 var (
-	WithToolType = MakeOption(func(c *ToolConfig, v ToolType) { c.ToolType = v })
-	WithToolName = MakeOption(func(c *ToolConfig, v string) { c.Name = v })
-	WithToolComponentConfig = MakeOption3(func(c *ToolConfig, toolType ToolType, toolName string, value interface{}) {
-		c.SetConfig(NewToolDescriber(toolType, toolName), value)
+	WithToolType            = MakeOption(func(c *ToolConfig, v ToolType) { c.ToolType = v })
+	WithToolName            = MakeOption(func(c *ToolConfig, v string) { c.Name = v })
+	WithToolComponentConfig = MakeOption(func(c *ToolConfig, value interface{}) {
+		desc, err := LookupToolDescriber(value)
+		if err != nil {
+			logger.Warnf("LookupToolDescriber failed: %v", err)
+			return
+		}
+		if desc == nil {
+			logger.Warnf("describer is nil for type %T", value)
+			return
+		}
+		c.SetConfig(desc, value)
 	})
 )
 
@@ -125,11 +132,15 @@ func RegisterToolConstructor(toolDesc *ToolDescriber, toolConstructor ToolConstr
 	return toolConstructorRegistry.Register(toolDesc, toolConstructor)
 }
 
-// 注册工具构造函数
-func RegisterToolConstructFunc(toolType ToolType, toolName string, toolConstructFunc ToolConstructFunc) error {
+// 注册工具构造函数；无特定配置时不要传参
+func RegisterToolConstructFunc(toolType ToolType, toolName string, toolConstructFunc ToolConstructFunc, bindValues ...interface{}) error {
 	toolDesc := NewToolDescriber(toolType, toolName)
 	toolConstructor := NewComponentConstructor[*ToolDescriber, *ToolConfig, []tool.BaseTool](toolDesc, toolConstructFunc)
-	return RegisterToolConstructor(toolDesc, toolConstructor)
+	return toolConstructorRegistry.Register(toolDesc, toolConstructor, bindValues...)
+}
+
+func LookupToolDescriber(value interface{}) (*ToolDescriber, error) {
+	return toolConstructorRegistry.LookupDesc(value)
 }
 
 func GetTool(ctx context.Context, toolOptions ...ToolOption) ([]tool.BaseTool, []*schema.ToolInfo, error) {

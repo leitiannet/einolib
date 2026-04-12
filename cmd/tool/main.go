@@ -19,7 +19,7 @@ func main() {
 	mustPrintToolInfos(ctx, einolib.ToolTypeBuiltin, duckduckgosearch.DuckDuckGoSearchToolName)
 	mcpToolConfig := einolibmcp.NewMCPToolConfig(einolibmcp.WithBaseURL("http://localhost:3000/sse"))
 	mustPrintToolInfos(ctx, einolib.ToolTypeMCP, "mcp_weather_tool",
-		einolib.WithToolComponentConfig(einolib.ToolTypeMCP, einolib.GeneralToolName, mcpToolConfig))
+		einolib.WithToolComponentConfig(mcpToolConfig))
 }
 
 func mustPrintToolInfos(ctx context.Context, toolType einolib.ToolType, toolName string, opts ...einolib.ToolOption) {

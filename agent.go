@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/cloudwego/eino/adk"
-	"github.com/cloudwego/eino/components/model"
 )
 
 // https://www.cloudwego.io/zh/docs/eino/core_modules/eino_adk/
@@ -51,11 +50,10 @@ func (ad *AgentDescriber) Validate() error {
 
 // 智能体配置
 type AgentConfig struct {
-	ComponentConfig                // 特定配置
-	AgentType        AgentType     // 智能体类型
-	AgentName        string        // 智能体名称
-	AgentDescription string        // 智能体描述
-	ModelOptions     []ModelOption // 模型选项（供子智能体自动创建模型）
+	ComponentConfig            // 特定配置
+	AgentType        AgentType // 智能体类型
+	AgentName        string    // 智能体名称
+	AgentDescription string    // 智能体描述
 }
 
 // 将名称和描述填充到目标字段
@@ -69,14 +67,6 @@ func (ac *AgentConfig) ApplyNameAndDescription(name, description *string) {
 	if description != nil && *description == "" {
 		*description = ac.AgentDescription
 	}
-}
-
-// BuildChatModel 从 AgentConfig 的 ModelOptions 构建模型
-func (ac *AgentConfig) BuildChatModel(ctx context.Context) (model.ToolCallingChatModel, error) {
-	if ac == nil || len(ac.ModelOptions) == 0 {
-		return nil, nil
-	}
-	return NewChatModel(ctx, ac.ModelOptions...)
 }
 
 func NewAgentConfig(agentOptions ...AgentOption) *AgentConfig {
@@ -93,12 +83,20 @@ func NewAgentConfig(agentOptions ...AgentOption) *AgentConfig {
 type AgentOption func(agentConfig *AgentConfig)
 
 var (
-	WithAgentType        = MakeOption(func(c *AgentConfig, v AgentType) { c.AgentType = v })
-	WithAgentName        = MakeOption(func(c *AgentConfig, v string) { c.AgentName = v })
-	WithAgentDescription = MakeOption(func(c *AgentConfig, v string) { c.AgentDescription = v })
-	WithAgentModelOptions = MakeAppendOption(func(c *AgentConfig) *[]ModelOption { return &c.ModelOptions })
-	WithAgentComponentConfig = MakeOption3(func(c *AgentConfig, agentType AgentType, agentName string, value interface{}) {
-		c.SetConfig(NewAgentDescriber(agentType, agentName), value)
+	WithAgentType            = MakeOption(func(c *AgentConfig, v AgentType) { c.AgentType = v })
+	WithAgentName            = MakeOption(func(c *AgentConfig, v string) { c.AgentName = v })
+	WithAgentDescription     = MakeOption(func(c *AgentConfig, v string) { c.AgentDescription = v })
+	WithAgentComponentConfig = MakeOption(func(c *AgentConfig, value interface{}) {
+		desc, err := LookupAgentDescriber(value)
+		if err != nil {
+			logger.Warnf("LookupAgentDescriber failed: %v", err)
+			return
+		}
+		if desc == nil {
+			logger.Warnf("describer is nil for type %T", value)
+			return
+		}
+		c.SetConfig(desc, value)
 	})
 )
 
@@ -127,10 +125,15 @@ func RegisterAgentConstructor(agentDesc *AgentDescriber, agentConstructor AgentC
 	return agentConstructorRegistry.Register(agentDesc, agentConstructor)
 }
 
-func RegisterAgentConstructFunc(agentType AgentType, agentName string, agentConstructFunc AgentConstructFunc) error {
+// 注册智能体构造函数；无特定配置时不要传参
+func RegisterAgentConstructFunc(agentType AgentType, agentName string, agentConstructFunc AgentConstructFunc, bindValues ...interface{}) error {
 	agentDesc := NewAgentDescriber(agentType, agentName)
 	agentConstructor := NewComponentConstructor[*AgentDescriber, *AgentConfig, adk.Agent](agentDesc, agentConstructFunc)
-	return RegisterAgentConstructor(agentDesc, agentConstructor)
+	return agentConstructorRegistry.Register(agentDesc, agentConstructor, bindValues...)
+}
+
+func LookupAgentDescriber(value interface{}) (*AgentDescriber, error) {
+	return agentConstructorRegistry.LookupDesc(value)
 }
 
 func NewAgent(ctx context.Context, agentOptions ...AgentOption) (adk.Agent, error) {

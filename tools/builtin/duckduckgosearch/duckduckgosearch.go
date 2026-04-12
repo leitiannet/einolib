@@ -49,7 +49,7 @@ func NewDuckDuckGoSearchTool(ctx context.Context, toolConfig *einolib.ToolConfig
 }
 
 func init() {
-	if err := einolib.RegisterToolConstructFunc(einolib.ToolTypeBuiltin, DuckDuckGoSearchToolName, NewDuckDuckGoSearchTool); err != nil {
+	if err := einolib.RegisterToolConstructFunc(einolib.ToolTypeBuiltin, DuckDuckGoSearchToolName, NewDuckDuckGoSearchTool, (*DuckDuckGoSearchToolConfig)(nil)); err != nil {
 		einolib.GetLogger().Errorf("register tool %s failed: %v", DuckDuckGoSearchToolName, err)
 	}
 }

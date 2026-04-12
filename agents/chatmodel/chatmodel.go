@@ -44,20 +44,13 @@ func NewChatModelAgent(ctx context.Context, agentConfig *einolib.AgentConfig, sp
 	}
 	agentConfig.ApplyNameAndDescription(&chatModelAgentConfig.Name, &chatModelAgentConfig.Description)
 	if chatModelAgentConfig.Model == nil {
-		chatModel, err := agentConfig.BuildChatModel(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("chatmodel agent: auto get chat model: %v", err)
-		}
-		chatModelAgentConfig.Model = chatModel
-	}
-	if chatModelAgentConfig.Model == nil {
 		return nil, fmt.Errorf("chatmodel agent: model is required")
 	}
 	return adk.NewChatModelAgent(ctx, &chatModelAgentConfig.ChatModelAgentConfig)
 }
 
 func init() {
-	if err := einolib.RegisterAgentConstructFunc(AgentTypeChatModel, einolib.GeneralAgentName, NewChatModelAgent); err != nil {
+	if err := einolib.RegisterAgentConstructFunc(AgentTypeChatModel, einolib.GeneralAgentName, NewChatModelAgent, (*ChatModelAgentConfig)(nil)); err != nil {
 		einolib.GetLogger().Errorf("register agent %s failed: %v", AgentTypeChatModel, err)
 	}
 }

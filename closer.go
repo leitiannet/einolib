@@ -5,6 +5,7 @@ import (
 	"io"
 	"sync"
 )
+
 // 说明：必须先 WithCloser 再 AddCloser，并在结束时 CloseCloser。否则资源无法被正确清理
 
 // 资源清理收集器（通过 context 传递）

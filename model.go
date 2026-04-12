@@ -88,11 +88,11 @@ func (modelConfig *ModelConfig) initFromEnvironment() {
 type ModelOption func(modelConfig *ModelConfig)
 
 var (
-	WithModelType = MakeOption(func(c *ModelConfig, v ModelType) { c.ModelType = v })
-	WithModelName = MakeOption(func(c *ModelConfig, v string) { c.ModelName = v })
-	WithBaseURL   = MakeOption(func(c *ModelConfig, v string) { c.BaseURL = v })
-	WithAPIKey    = MakeOption(func(c *ModelConfig, v string) { c.APIKey = v })
-	WithByAzure   = MakeOption(func(c *ModelConfig, v string) { c.ByAzure = v })
+	WithModelType   = MakeOption(func(c *ModelConfig, v ModelType) { c.ModelType = v })
+	WithModelName   = MakeOption(func(c *ModelConfig, v string) { c.ModelName = v })
+	WithBaseURL     = MakeOption(func(c *ModelConfig, v string) { c.BaseURL = v })
+	WithAPIKey      = MakeOption(func(c *ModelConfig, v string) { c.APIKey = v })
+	WithByAzure     = MakeOption(func(c *ModelConfig, v string) { c.ByAzure = v })
 	WithByAzureBool = MakeOption(func(c *ModelConfig, v bool) {
 		if v {
 			c.ByAzure = "true"
@@ -100,8 +100,17 @@ var (
 			c.ByAzure = "false"
 		}
 	})
-	WithModelComponentConfig = MakeOption2(func(c *ModelConfig, modelType ModelType, value interface{}) {
-		c.SetConfig(NewModelDescriber(modelType), value)
+	WithModelComponentConfig = MakeOption(func(c *ModelConfig, value interface{}) {
+		desc, err := LookupModelDescriber(value)
+		if err != nil {
+			logger.Warnf("LookupModelDescriber failed: %v", err)
+			return
+		}
+		if desc == nil {
+			logger.Warnf("describer is nil for type %T", value)
+			return
+		}
+		c.SetConfig(desc, value)
 	})
 )
 
@@ -122,10 +131,15 @@ func RegisterModelConstructor(modelDesc *ModelDescriber, modelConstructor ModelC
 	return modelConstructorRegistry.Register(modelDesc, modelConstructor)
 }
 
-func RegisterModelConstructFunc(modelType ModelType, modelConstructFunc ModelConstructFunc) error {
+// 注册模型构造函数；无特定配置时不要传参
+func RegisterModelConstructFunc(modelType ModelType, modelConstructFunc ModelConstructFunc, bindValues ...interface{}) error {
 	modelDesc := NewModelDescriber(modelType)
 	modelConstructor := NewComponentConstructor[*ModelDescriber, *ModelConfig, model.ToolCallingChatModel](modelDesc, modelConstructFunc)
-	return RegisterModelConstructor(modelDesc, modelConstructor)
+	return modelConstructorRegistry.Register(modelDesc, modelConstructor, bindValues...)
+}
+
+func LookupModelDescriber(value interface{}) (*ModelDescriber, error) {
+	return modelConstructorRegistry.LookupDesc(value)
 }
 
 func NewChatModel(ctx context.Context, modelOptions ...ModelOption) (model.ToolCallingChatModel, error) {

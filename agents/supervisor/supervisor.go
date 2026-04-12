@@ -50,7 +50,7 @@ func NewSupervisorAgent(ctx context.Context, agentConfig *einolib.AgentConfig, s
 }
 
 func init() {
-	if err := einolib.RegisterAgentConstructFunc(AgentTypeSupervisor, einolib.GeneralAgentName, NewSupervisorAgent); err != nil {
+	if err := einolib.RegisterAgentConstructFunc(AgentTypeSupervisor, einolib.GeneralAgentName, NewSupervisorAgent, (*SupervisorAgentConfig)(nil)); err != nil {
 		einolib.GetLogger().Errorf("register agent %s failed: %v", AgentTypeSupervisor, err)
 	}
 }

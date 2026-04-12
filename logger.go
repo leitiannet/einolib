@@ -32,11 +32,6 @@ func (l *defaultLogger) Errorf(format string, args ...interface{}) {
 	log.Printf("[ERROR] "+format, args...)
 }
 
-// 仅作 atomic.Value 的固定存储类型（*loggerHolder），本身不实现 Logger
-type loggerHolder struct {
-	impl Logger
-}
-
 // 日志代理，方便包内用logger.xxx
 type loggerProxy struct{}
 
@@ -46,13 +41,18 @@ func (loggerProxy) Warnf(format string, args ...interface{})  { GetLogger().Warn
 func (loggerProxy) Errorf(format string, args ...interface{}) { GetLogger().Errorf(format, args...) }
 
 var (
-	loggerValue       atomic.Value // *loggerHolder
-	logger            loggerProxy  // 零值结构体，无数据竞争问题
-	defaultLoggerImpl defaultLogger // 用于 init 注入与 GetLogger 异常回退
+	loggerValue       atomic.Value  // *loggerHolder
+	logger            loggerProxy   // 零值结构体，无数据竞争问题
+	defaultLoggerImpl defaultLogger // 用于init注入与GetLogger异常回退
 )
 
 func init() {
 	loggerValue.Store(&loggerHolder{impl: &defaultLoggerImpl})
+}
+
+// 仅作 atomic.Value 的固定存储类型（*loggerHolder），本身不实现 Logger
+type loggerHolder struct {
+	impl Logger
 }
 
 // 设置自定义日志实现，传入nil则不生效

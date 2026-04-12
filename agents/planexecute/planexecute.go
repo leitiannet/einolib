@@ -22,12 +22,6 @@ type PlanExecuteAgentConfig struct {
 	ReplannerConfig    *planexecute.ReplannerConfig // 重规划器配置
 }
 
-func (c *PlanExecuteAgentConfig) needAutoModel() bool {
-	return (c.Planner == nil && c.PlannerConfig != nil) ||
-		(c.Executor == nil && c.ExecutorConfig != nil) ||
-		(c.Replanner == nil && c.ReplannerConfig != nil)
-}
-
 func NewPlanExecuteAgentConfig(planExecuteAgentOptions ...PlanExecuteAgentOption) *PlanExecuteAgentConfig {
 	planExecuteAgentConfig := &PlanExecuteAgentConfig{}
 	planExecuteAgentConfig.MaxIterations = 10 // 默认最大迭代次数为10
@@ -57,10 +51,10 @@ func initReplannerConfig(c *PlanExecuteAgentConfig) {
 
 var (
 	// 顶层选项
-	WithPlanner       = einolib.MakeOption(func(c *PlanExecuteAgentConfig, v adk.Agent) { c.Planner = v })
-	WithExecutor      = einolib.MakeOption(func(c *PlanExecuteAgentConfig, v adk.Agent) { c.Executor = v })
-	WithReplanner     = einolib.MakeOption(func(c *PlanExecuteAgentConfig, v adk.Agent) { c.Replanner = v })
-	WithPlannerConfig = einolib.MakeOption(func(c *PlanExecuteAgentConfig, v *planexecute.PlannerConfig) { c.PlannerConfig = v })
+	WithPlanner         = einolib.MakeOption(func(c *PlanExecuteAgentConfig, v adk.Agent) { c.Planner = v })
+	WithExecutor        = einolib.MakeOption(func(c *PlanExecuteAgentConfig, v adk.Agent) { c.Executor = v })
+	WithReplanner       = einolib.MakeOption(func(c *PlanExecuteAgentConfig, v adk.Agent) { c.Replanner = v })
+	WithPlannerConfig   = einolib.MakeOption(func(c *PlanExecuteAgentConfig, v *planexecute.PlannerConfig) { c.PlannerConfig = v })
 	WithExecutorConfig  = einolib.MakeOption(func(c *PlanExecuteAgentConfig, v *planexecute.ExecutorConfig) { c.ExecutorConfig = v })
 	WithReplannerConfig = einolib.MakeOption(func(c *PlanExecuteAgentConfig, v *planexecute.ReplannerConfig) { c.ReplannerConfig = v })
 	WithMaxIterations   = einolib.MakeOption(func(c *PlanExecuteAgentConfig, v int) { c.MaxIterations = v })
@@ -128,27 +122,18 @@ var (
 	})
 )
 
-func newPlanner(ctx context.Context, plannerConfig *planexecute.PlannerConfig, chatModel model.ToolCallingChatModel) (adk.Agent, error) {
+func newPlanner(ctx context.Context, plannerConfig *planexecute.PlannerConfig) (adk.Agent, error) {
 	c := *plannerConfig
-	if c.ChatModelWithFormattedOutput == nil && c.ToolCallingChatModel == nil && chatModel != nil {
-		c.ToolCallingChatModel = chatModel
-	}
 	return planexecute.NewPlanner(ctx, &c)
 }
 
-func newExecutor(ctx context.Context, executorConfig *planexecute.ExecutorConfig, chatModel model.ToolCallingChatModel) (adk.Agent, error) {
+func newExecutor(ctx context.Context, executorConfig *planexecute.ExecutorConfig) (adk.Agent, error) {
 	c := *executorConfig
-	if c.Model == nil && chatModel != nil {
-		c.Model = chatModel
-	}
 	return planexecute.NewExecutor(ctx, &c)
 }
 
-func newReplanner(ctx context.Context, replannerConfig *planexecute.ReplannerConfig, chatModel model.ToolCallingChatModel) (adk.Agent, error) {
+func newReplanner(ctx context.Context, replannerConfig *planexecute.ReplannerConfig) (adk.Agent, error) {
 	c := *replannerConfig
-	if c.ChatModel == nil && chatModel != nil {
-		c.ChatModel = chatModel
-	}
 	return planexecute.NewReplanner(ctx, &c)
 }
 
@@ -157,27 +142,20 @@ func NewPlanExecuteAgent(ctx context.Context, agentConfig *einolib.AgentConfig, 
 	if err != nil {
 		return nil, err
 	}
-	var chatModel model.ToolCallingChatModel
-	if planExecuteAgentConfig.needAutoModel() {
-		chatModel, err = agentConfig.BuildChatModel(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("planexecute agent: auto get chat model: %v", err)
-		}
-	}
 	if planExecuteAgentConfig.Planner == nil && planExecuteAgentConfig.PlannerConfig != nil {
-		planExecuteAgentConfig.Planner, err = newPlanner(ctx, planExecuteAgentConfig.PlannerConfig, chatModel)
+		planExecuteAgentConfig.Planner, err = newPlanner(ctx, planExecuteAgentConfig.PlannerConfig)
 		if err != nil {
 			return nil, fmt.Errorf("planexecute agent: new planner: %v", err)
 		}
 	}
 	if planExecuteAgentConfig.Executor == nil && planExecuteAgentConfig.ExecutorConfig != nil {
-		planExecuteAgentConfig.Executor, err = newExecutor(ctx, planExecuteAgentConfig.ExecutorConfig, chatModel)
+		planExecuteAgentConfig.Executor, err = newExecutor(ctx, planExecuteAgentConfig.ExecutorConfig)
 		if err != nil {
 			return nil, fmt.Errorf("planexecute agent: new executor: %v", err)
 		}
 	}
 	if planExecuteAgentConfig.Replanner == nil && planExecuteAgentConfig.ReplannerConfig != nil {
-		planExecuteAgentConfig.Replanner, err = newReplanner(ctx, planExecuteAgentConfig.ReplannerConfig, chatModel)
+		planExecuteAgentConfig.Replanner, err = newReplanner(ctx, planExecuteAgentConfig.ReplannerConfig)
 		if err != nil {
 			return nil, fmt.Errorf("planexecute agent: new replanner: %v", err)
 		}
@@ -195,7 +173,7 @@ func NewPlanExecuteAgent(ctx context.Context, agentConfig *einolib.AgentConfig, 
 }
 
 func init() {
-	if err := einolib.RegisterAgentConstructFunc(AgentTypePlanExecute, einolib.GeneralAgentName, NewPlanExecuteAgent); err != nil {
+	if err := einolib.RegisterAgentConstructFunc(AgentTypePlanExecute, einolib.GeneralAgentName, NewPlanExecuteAgent, (*PlanExecuteAgentConfig)(nil)); err != nil {
 		einolib.GetLogger().Errorf("register agent %s failed: %v", AgentTypePlanExecute, err)
 	}
 }

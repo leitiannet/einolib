@@ -9,12 +9,12 @@ import (
 
 // 运行器配置
 type RunnerConfig struct {
-	adk.RunnerConfig               // 内嵌adk.RunnerConfig
-	AgentOptions     []AgentOption // 通过AgentOption构建Agent（Agent为nil时生效）
+	adk.RunnerConfig // 内嵌adk.RunnerConfig
 }
 
 func NewRunnerConfig(runnerOptions ...RunnerOption) *RunnerConfig {
 	runnerConfig := &RunnerConfig{}
+	runnerConfig.EnableStreaming = true // 默认启用流式输出
 	ApplyOptions(runnerConfig, runnerOptions)
 	return runnerConfig
 }
@@ -24,20 +24,12 @@ type RunnerOption func(runnerConfig *RunnerConfig)
 
 var (
 	WithAgent           = MakeOption(func(c *RunnerConfig, v adk.Agent) { c.Agent = v })
-	WithEnableStreaming  = MakeOption(func(c *RunnerConfig, v bool) { c.EnableStreaming = v })
+	WithEnableStreaming = MakeOption(func(c *RunnerConfig, v bool) { c.EnableStreaming = v })
 	WithCheckPointStore = MakeOption(func(c *RunnerConfig, v adk.CheckPointStore) { c.CheckPointStore = v })
-	WithAgentOptions    = MakeAppendOption(func(c *RunnerConfig) *[]AgentOption { return &c.AgentOptions })
 )
 
 func NewRunner(ctx context.Context, runnerOptions ...RunnerOption) (*adk.Runner, error) {
 	runnerConfig := NewRunnerConfig(runnerOptions...)
-	if runnerConfig.Agent == nil {
-		var err error
-		runnerConfig.Agent, err = NewAgent(ctx, runnerConfig.AgentOptions...)
-		if err != nil {
-			return nil, err
-		}
-	}
 	if runnerConfig.Agent == nil {
 		return nil, fmt.Errorf("runner: agent is nil")
 	}

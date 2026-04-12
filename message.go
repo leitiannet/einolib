@@ -46,7 +46,7 @@ func (m *MessageConfig) toMessage() *schema.Message {
 }
 
 // 消息选项
-type MsgOption func(*MessageConfig)
+type MessageOption func(*MessageConfig)
 
 var (
 	// 设置工具调用（Assistant 角色）
@@ -64,7 +64,7 @@ var (
 // user：用户输入
 // assistant：模型回复
 // tool：工具调用结果
-func Msg(role schema.RoleType, content string, opts ...MsgOption) *MessageConfig {
+func Msg(role schema.RoleType, content string, opts ...MessageOption) *MessageConfig {
 	if role == "" {
 		return nil
 	}
@@ -85,16 +85,36 @@ func Placeholder(key string, optional ...bool) *PlaceholderConfig {
 	return &PlaceholderConfig{Key: key, Optional: opt}
 }
 
+// 创建消息
+func NewMessage(config *MessageConfig) *schema.Message {
+	if config == nil {
+		return nil
+	}
+	return config.toMessage()
+}
+
 // 创建消息列表
 func NewMessages(configs ...*MessageConfig) []*schema.Message {
 	messages := make([]*schema.Message, 0, len(configs))
-	for _, cfg := range configs {
-		if cfg == nil {
+	for _, config := range configs {
+		if config == nil {
 			continue
 		}
-		messages = append(messages, cfg.toMessage())
+		messages = append(messages, config.toMessage())
 	}
 	return messages
+}
+
+// 创建消息模板
+func NewTemplate(item TemplateItem) schema.MessagesTemplate {
+	if item == nil {
+		return nil
+	}
+	templates := item.templateItems()
+	if len(templates) == 0 {
+		return nil
+	}
+	return templates[0]
 }
 
 // 创建消息模板列表，同时接收 MessageConfig 和 PlaceholderConfig

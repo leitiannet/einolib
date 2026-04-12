@@ -164,7 +164,7 @@ func NewMCPTool(ctx context.Context, toolConfig *einolib.ToolConfig, specificCon
 }
 
 func init() {
-	if err := einolib.RegisterToolConstructFunc(einolib.ToolTypeMCP, einolib.GeneralToolName, NewMCPTool); err != nil {
+	if err := einolib.RegisterToolConstructFunc(einolib.ToolTypeMCP, einolib.GeneralToolName, NewMCPTool, (*MCPToolConfig)(nil)); err != nil {
 		einolib.GetLogger().Errorf("register tool %s failed: %v", einolib.GeneralToolName, err)
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/cloudwego/eino/adk"
+	"github.com/cloudwego/eino/adk/filesystem"
 	"github.com/cloudwego/eino/adk/prebuilt/deep"
 	"github.com/cloudwego/eino/components/model"
 	"github.com/leitiannet/einolib"
@@ -28,17 +29,20 @@ func NewDeepAgentConfig(deepAgentOptions ...DeepAgentOption) *DeepAgentConfig {
 type DeepAgentOption func(deepAgentConfig *DeepAgentConfig)
 
 var (
-	WithName                   = einolib.MakeOption(func(c *DeepAgentConfig, v string) { c.Name = v })
-	WithDescription            = einolib.MakeOption(func(c *DeepAgentConfig, v string) { c.Description = v })
-	WithChatModel              = einolib.MakeOption(func(c *DeepAgentConfig, v model.ToolCallingChatModel) { c.ChatModel = v })
-	WithInstruction            = einolib.MakeOption(func(c *DeepAgentConfig, v string) { c.Instruction = v })
-	WithToolsConfig            = einolib.MakeOption(func(c *DeepAgentConfig, v adk.ToolsConfig) { c.ToolsConfig = v })
-	WithMaxIteration           = einolib.MakeOption(func(c *DeepAgentConfig, v int) { c.MaxIteration = v })
-	WithWithoutWriteTodos      = einolib.MakeOption(func(c *DeepAgentConfig, v bool) { c.WithoutWriteTodos = v })
-	WithWithoutGeneralSubAgent = einolib.MakeOption(func(c *DeepAgentConfig, v bool) { c.WithoutGeneralSubAgent = v })
-	WithModelRetryConfig       = einolib.MakeOption(func(c *DeepAgentConfig, v *adk.ModelRetryConfig) { c.ModelRetryConfig = v })
-	WithOutputKey              = einolib.MakeOption(func(c *DeepAgentConfig, v string) { c.OutputKey = v })
-	WithSubAgents              = einolib.MakeAppendOption(func(c *DeepAgentConfig) *[]adk.Agent { return &c.SubAgents })
+	WithName                         = einolib.MakeOption(func(c *DeepAgentConfig, v string) { c.Name = v })
+	WithDescription                  = einolib.MakeOption(func(c *DeepAgentConfig, v string) { c.Description = v })
+	WithChatModel                    = einolib.MakeOption(func(c *DeepAgentConfig, v model.ToolCallingChatModel) { c.ChatModel = v })
+	WithInstruction                  = einolib.MakeOption(func(c *DeepAgentConfig, v string) { c.Instruction = v })
+	WithToolsConfig                  = einolib.MakeOption(func(c *DeepAgentConfig, v adk.ToolsConfig) { c.ToolsConfig = v })
+	WithBackend                      = einolib.MakeOption(func(c *DeepAgentConfig, v filesystem.Backend) { c.Backend = v })
+	WithShell                        = einolib.MakeOption(func(c *DeepAgentConfig, v filesystem.Shell) { c.Shell = v })
+	WithStreamingShell               = einolib.MakeOption(func(c *DeepAgentConfig, v filesystem.StreamingShell) { c.StreamingShell = v })
+	WithMaxIteration                 = einolib.MakeOption(func(c *DeepAgentConfig, v int) { c.MaxIteration = v })
+	WithWithoutWriteTodos            = einolib.MakeOption(func(c *DeepAgentConfig, v bool) { c.WithoutWriteTodos = v })
+	WithWithoutGeneralSubAgent       = einolib.MakeOption(func(c *DeepAgentConfig, v bool) { c.WithoutGeneralSubAgent = v })
+	WithModelRetryConfig             = einolib.MakeOption(func(c *DeepAgentConfig, v *adk.ModelRetryConfig) { c.ModelRetryConfig = v })
+	WithOutputKey                    = einolib.MakeOption(func(c *DeepAgentConfig, v string) { c.OutputKey = v })
+	WithSubAgents                    = einolib.MakeAppendOption(func(c *DeepAgentConfig) *[]adk.Agent { return &c.SubAgents })
 	WithMiddlewares                  = einolib.MakeAppendOption(func(c *DeepAgentConfig) *[]adk.AgentMiddleware { return &c.Middlewares })
 	WithTaskToolDescriptionGenerator = einolib.MakeOption(func(c *DeepAgentConfig, v func(ctx context.Context, availableAgents []adk.Agent) (string, error)) {
 		c.TaskToolDescriptionGenerator = v
@@ -52,13 +56,6 @@ func NewDeepAgent(ctx context.Context, agentConfig *einolib.AgentConfig, specifi
 	}
 	agentConfig.ApplyNameAndDescription(&deepAgentConfig.Name, &deepAgentConfig.Description)
 	if deepAgentConfig.ChatModel == nil {
-		chatModel, err := agentConfig.BuildChatModel(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("deep agent: auto get chat model: %v", err)
-		}
-		deepAgentConfig.ChatModel = chatModel
-	}
-	if deepAgentConfig.ChatModel == nil {
 		return nil, fmt.Errorf("deep agent: model is required")
 	}
 	for _, sa := range deepAgentConfig.SubAgents {
@@ -70,7 +67,7 @@ func NewDeepAgent(ctx context.Context, agentConfig *einolib.AgentConfig, specifi
 }
 
 func init() {
-	if err := einolib.RegisterAgentConstructFunc(AgentTypeDeep, einolib.GeneralAgentName, NewDeepAgent); err != nil {
+	if err := einolib.RegisterAgentConstructFunc(AgentTypeDeep, einolib.GeneralAgentName, NewDeepAgent, (*DeepAgentConfig)(nil)); err != nil {
 		einolib.GetLogger().Errorf("register agent %s failed: %v", AgentTypeDeep, err)
 	}
 }
