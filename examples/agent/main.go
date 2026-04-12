@@ -9,7 +9,7 @@ import (
 	"github.com/cloudwego/eino/schema"
 	"github.com/leitiannet/einolib"
 	"github.com/leitiannet/einolib/agents/chatmodel"
-	mwlog "github.com/leitiannet/einolib/middlewares/log"
+	"github.com/leitiannet/einolib/middlewares/trace"
 	_ "github.com/leitiannet/einolib/models"
 	_ "github.com/leitiannet/einolib/tools"
 	"github.com/leitiannet/einolib/tools/custom/booksearch"
@@ -44,8 +44,8 @@ func main() {
 			chatmodel.WithToolsConfig(adk.ToolsConfig{
 				ToolsNodeConfig: compose.ToolsNodeConfig{Tools: tools},
 			}),
-			chatmodel.WithMiddlewares(mwlog.AgentMiddleware()),
-			chatmodel.WithHandlers(mwlog.NewChatModelAgentMiddleware()),
+			chatmodel.WithMiddlewares(trace.AgentMiddleware()),
+			chatmodel.WithHandlers(trace.NewChatModelAgentMiddleware()),
 		)),
 	)
 	if err != nil {
