@@ -3,83 +3,47 @@ package safetool
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	"io"
 
 	"github.com/cloudwego/eino/adk"
-	"github.com/cloudwego/eino/components/tool"
-	"github.com/cloudwego/eino/compose"
-	"github.com/cloudwego/eino/schema"
+	"github.com/leitiannet/einolib"
 )
 
-type ChatModelAgentMiddleware struct {
-	*adk.BaseChatModelAgentMiddleware
+const (
+	MiddlewareTypeSafeTool einolib.MiddlewareType = "safetool"
+)
+
+type SafeToolMiddlewareConfig struct {
+	ErrorFormat string
 }
 
-func NewChatModelAgentMiddleware() adk.ChatModelAgentMiddleware {
+func NewSafeToolMiddlewareConfig(safeToolMiddlewareOptions ...SafeToolMiddlewareOption) *SafeToolMiddlewareConfig {
+	config := &SafeToolMiddlewareConfig{ErrorFormat: "[tool error] %v"}
+	einolib.ApplyOptions(config, safeToolMiddlewareOptions)
+	return config
+}
+
+type SafeToolMiddlewareOption func(*SafeToolMiddlewareConfig)
+
+var (
+	WithErrorFormat = einolib.MakeOption(func(c *SafeToolMiddlewareConfig, v string) { c.ErrorFormat = v })
+)
+
+func NewSafeToolMiddleware(_ context.Context, config *SafeToolMiddlewareConfig) (*ChatModelAgentMiddleware, error) {
 	return &ChatModelAgentMiddleware{
-		BaseChatModelAgentMiddleware: &adk.BaseChatModelAgentMiddleware{},
-	}
-}
-
-func (*ChatModelAgentMiddleware) WrapInvokableToolCall(_ context.Context, endpoint adk.InvokableToolCallEndpoint, _ *adk.ToolContext) (adk.InvokableToolCallEndpoint, error) {
-	return func(ctx context.Context, argumentsInJSON string, opts ...tool.Option) (string, error) {
-		result, err := endpoint(ctx, argumentsInJSON, opts...)
-		if err != nil {
-			if _, ok := compose.IsInterruptRerunError(err); ok {
-				return result, err
-			}
-			return fmt.Sprintf("[tool error] %v", err), nil
-		}
-		return result, nil
+		errorFormat: config.ErrorFormat,
 	}, nil
 }
 
-func (*ChatModelAgentMiddleware) WrapStreamableToolCall(_ context.Context, endpoint adk.StreamableToolCallEndpoint, _ *adk.ToolContext) (adk.StreamableToolCallEndpoint, error) {
-	return func(ctx context.Context, argumentsInJSON string, opts ...tool.Option) (*schema.StreamReader[string], error) {
-		sr, err := endpoint(ctx, argumentsInJSON, opts...)
-		if err != nil {
-			if _, ok := compose.IsInterruptRerunError(err); ok {
-				return sr, err
-			}
-			return singleChunkReader(fmt.Sprintf("[tool error] %v", err)), nil
-		}
-		return safeWrapReader(sr), nil
-	}, nil
-}
-
-func singleChunkReader(msg string) *schema.StreamReader[string] {
-	return schema.StreamReaderFromArray([]string{msg})
-}
-
-func safeWrapReader(sr *schema.StreamReader[string]) *schema.StreamReader[string] {
-	if sr == nil {
-		return schema.StreamReaderFromArray([]string{})
+func createMiddleware(ctx context.Context, middlewareConfig *einolib.MiddlewareConfig, specificConfig interface{}) (adk.ChatModelAgentMiddleware, error) {
+	safeToolMiddlewareConfig, err := einolib.ParseSpecificConfig(specificConfig, func() *SafeToolMiddlewareConfig { return NewSafeToolMiddlewareConfig() })
+	if err != nil {
+		return nil, err
 	}
-	out, inw := schema.Pipe[string](4)
-	go func() {
-		defer inw.Close()
-		defer sr.Close()
-		for {
-			chunk, err := sr.Recv()
-			if err != nil {
-				if errors.Is(err, io.EOF) {
-					return
-				}
-				if _, ok := compose.IsInterruptRerunError(err); ok {
-					_ = inw.Send("", err)
-					return
-				}
-				if inw.Send(fmt.Sprintf("[tool error] %v", err), nil) {
-					return
-				}
-				return
-			}
-			if inw.Send(chunk, nil) {
-				return
-			}
-		}
-	}()
-	return out
+	return NewSafeToolMiddleware(ctx, safeToolMiddlewareConfig)
+}
+
+func init() {
+	if err := einolib.RegisterMiddlewareConstructFunc(MiddlewareTypeSafeTool, einolib.GeneralMiddlewareName, createMiddleware, (*SafeToolMiddlewareConfig)(nil)); err != nil {
+		einolib.GetLogger().Errorf("register middleware %s failed: %v", MiddlewareTypeSafeTool, err)
+	}
 }
