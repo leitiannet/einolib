@@ -19,11 +19,7 @@ func NewSequentialWorkflowAgentConfig(workflowAgentOptions ...WorkflowAgentOptio
 	return c
 }
 
-func NewSequentialAgent(ctx context.Context, agentConfig *einolib.AgentConfig, specificConfig interface{}) (adk.Agent, error) {
-	cfg, err := einolib.ParseSpecificConfig(specificConfig, func() *SequentialWorkflowAgentConfig { return NewSequentialWorkflowAgentConfig() })
-	if err != nil {
-		return nil, err
-	}
+func NewSequentialWorkflowAgent(ctx context.Context, agentConfig *einolib.AgentConfig, cfg *SequentialWorkflowAgentConfig) (adk.Agent, error) {
 	if err := validateAndApplyAgentMeta(agentConfig, &cfg.WorkflowAgentConfigCommon); err != nil {
 		return nil, err
 	}
@@ -34,8 +30,16 @@ func NewSequentialAgent(ctx context.Context, agentConfig *einolib.AgentConfig, s
 	})
 }
 
+func createSequentialAgent(ctx context.Context, agentConfig *einolib.AgentConfig, specificConfig interface{}) (adk.Agent, error) {
+	cfg, err := einolib.ParseSpecificConfig(specificConfig, func() *SequentialWorkflowAgentConfig { return NewSequentialWorkflowAgentConfig() })
+	if err != nil {
+		return nil, err
+	}
+	return NewSequentialWorkflowAgent(ctx, agentConfig, cfg)
+}
+
 func init() {
-	if err := einolib.RegisterAgentConstructFunc(AgentTypeWorkflowSequential, einolib.GeneralAgentName, NewSequentialAgent, (*SequentialWorkflowAgentConfig)(nil)); err != nil {
+	if err := einolib.RegisterAgentConstructFunc(AgentTypeWorkflowSequential, einolib.GeneralAgentName, createSequentialAgent, (*SequentialWorkflowAgentConfig)(nil)); err != nil {
 		einolib.GetLogger().Errorf("register agent %s failed: %v", AgentTypeWorkflowSequential, err)
 	}
 }

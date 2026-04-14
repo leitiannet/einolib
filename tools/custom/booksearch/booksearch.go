@@ -1,3 +1,4 @@
+// 图书检索示例自定义工具
 package booksearch
 
 import (
@@ -23,13 +24,23 @@ type BookSearchOutput struct {
 	Books []string `json:"books"`
 }
 
-func searchBook(_ context.Context, _ *BookSearchInput) (*BookSearchOutput, error) {
+func searchBook(ctx context.Context, input *BookSearchInput) (*BookSearchOutput, error) {
 	// search code
 	// ...
 	return &BookSearchOutput{Books: []string{"God's blessing on this wonderful world!"}}, nil
 }
 
-func NewSearchBookTool(_ context.Context, _ *einolib.ToolConfig, _ interface{}) ([]tool.BaseTool, error) {
+type BookSearchToolConfig struct{}
+
+func NewBookSearchToolConfig(bookSearchToolOptions ...BookSearchToolOption) *BookSearchToolConfig {
+	bookSearchToolConfig := &BookSearchToolConfig{}
+	einolib.ApplyOptions(bookSearchToolConfig, bookSearchToolOptions)
+	return bookSearchToolConfig
+}
+
+type BookSearchToolOption func(*BookSearchToolConfig)
+
+func NewSearchBookTool(ctx context.Context, toolConfig *einolib.ToolConfig, bookSearchToolConfig *BookSearchToolConfig) ([]tool.BaseTool, error) {
 	t, err := utils.InferTool(SearchBookToolName, SearchBookToolDesc, searchBook)
 	if err != nil {
 		return nil, err
@@ -37,8 +48,16 @@ func NewSearchBookTool(_ context.Context, _ *einolib.ToolConfig, _ interface{}) 
 	return []tool.BaseTool{t}, nil
 }
 
+func createSearchBookTool(ctx context.Context, toolConfig *einolib.ToolConfig, specificConfig interface{}) ([]tool.BaseTool, error) {
+	bookSearchToolConfig, err := einolib.ParseSpecificConfig(specificConfig, func() *BookSearchToolConfig { return NewBookSearchToolConfig() })
+	if err != nil {
+		return nil, err
+	}
+	return NewSearchBookTool(ctx, toolConfig, bookSearchToolConfig)
+}
+
 func init() {
-	if err := einolib.RegisterToolConstructFunc(einolib.ToolTypeCustom, SearchBookToolName, NewSearchBookTool); err != nil {
+	if err := einolib.RegisterToolConstructFunc(einolib.ToolTypeCustom, SearchBookToolName, createSearchBookTool, (*BookSearchToolConfig)(nil)); err != nil {
 		einolib.GetLogger().Errorf("register tool %s failed: %v", SearchBookToolName, err)
 	}
 }

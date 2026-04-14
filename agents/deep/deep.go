@@ -1,3 +1,4 @@
+// Deep 预构建智能体，支持子智能体、文件后端与深度任务迭代
 package deep
 
 import (
@@ -49,11 +50,7 @@ var (
 	})
 )
 
-func NewDeepAgent(ctx context.Context, agentConfig *einolib.AgentConfig, specificConfig interface{}) (adk.Agent, error) {
-	deepAgentConfig, err := einolib.ParseSpecificConfig(specificConfig, func() *DeepAgentConfig { return NewDeepAgentConfig() })
-	if err != nil {
-		return nil, err
-	}
+func NewDeepAgent(ctx context.Context, agentConfig *einolib.AgentConfig, deepAgentConfig *DeepAgentConfig) (adk.Agent, error) {
 	agentConfig.ApplyNameAndDescription(&deepAgentConfig.Name, &deepAgentConfig.Description)
 	if deepAgentConfig.ChatModel == nil {
 		return nil, fmt.Errorf("deep agent: model is required")
@@ -66,8 +63,16 @@ func NewDeepAgent(ctx context.Context, agentConfig *einolib.AgentConfig, specifi
 	return deep.New(ctx, &deepAgentConfig.Config)
 }
 
+func createDeepAgent(ctx context.Context, agentConfig *einolib.AgentConfig, specificConfig interface{}) (adk.Agent, error) {
+	deepAgentConfig, err := einolib.ParseSpecificConfig(specificConfig, func() *DeepAgentConfig { return NewDeepAgentConfig() })
+	if err != nil {
+		return nil, err
+	}
+	return NewDeepAgent(ctx, agentConfig, deepAgentConfig)
+}
+
 func init() {
-	if err := einolib.RegisterAgentConstructFunc(AgentTypeDeep, einolib.GeneralAgentName, NewDeepAgent, (*DeepAgentConfig)(nil)); err != nil {
+	if err := einolib.RegisterAgentConstructFunc(AgentTypeDeep, einolib.GeneralAgentName, createDeepAgent, (*DeepAgentConfig)(nil)); err != nil {
 		einolib.GetLogger().Errorf("register agent %s failed: %v", AgentTypeDeep, err)
 	}
 }

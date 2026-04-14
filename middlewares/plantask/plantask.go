@@ -18,9 +18,9 @@ type PlanTaskMiddlewareConfig struct {
 }
 
 func NewPlanTaskMiddlewareConfig(planTaskMiddlewareOptions ...PlanTaskMiddlewareOption) *PlanTaskMiddlewareConfig {
-	config := &PlanTaskMiddlewareConfig{}
-	einolib.ApplyOptions(config, planTaskMiddlewareOptions)
-	return config
+	planTaskMiddlewareConfig := &PlanTaskMiddlewareConfig{}
+	einolib.ApplyOptions(planTaskMiddlewareConfig, planTaskMiddlewareOptions)
+	return planTaskMiddlewareConfig
 }
 
 type PlanTaskMiddlewareOption func(*PlanTaskMiddlewareConfig)
@@ -30,11 +30,11 @@ var (
 	WithBaseDir = einolib.MakeOption(func(c *PlanTaskMiddlewareConfig, v string) { c.BaseDir = v })
 )
 
-func NewPlanTaskMiddleware(ctx context.Context, config *PlanTaskMiddlewareConfig) (adk.ChatModelAgentMiddleware, error) {
-	return ptmiddleware.New(ctx, &config.Config)
+func NewPlanTaskMiddleware(ctx context.Context, planTaskMiddlewareConfig *PlanTaskMiddlewareConfig) (adk.ChatModelAgentMiddleware, error) {
+	return ptmiddleware.New(ctx, &planTaskMiddlewareConfig.Config)
 }
 
-func createMiddleware(ctx context.Context, middlewareConfig *einolib.MiddlewareConfig, specificConfig interface{}) (adk.ChatModelAgentMiddleware, error) {
+func createPlanTaskMiddleware(ctx context.Context, middlewareConfig *einolib.MiddlewareConfig, specificConfig interface{}) (adk.ChatModelAgentMiddleware, error) {
 	planTaskMiddlewareConfig, err := einolib.ParseSpecificConfig(specificConfig, func() *PlanTaskMiddlewareConfig { return NewPlanTaskMiddlewareConfig() })
 	if err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func createMiddleware(ctx context.Context, middlewareConfig *einolib.MiddlewareC
 }
 
 func init() {
-	if err := einolib.RegisterMiddlewareConstructFunc(MiddlewareTypePlanTask, einolib.GeneralMiddlewareName, createMiddleware, (*PlanTaskMiddlewareConfig)(nil)); err != nil {
+	if err := einolib.RegisterMiddlewareConstructFunc(MiddlewareTypePlanTask, einolib.GeneralMiddlewareName, createPlanTaskMiddleware, (*PlanTaskMiddlewareConfig)(nil)); err != nil {
 		einolib.GetLogger().Errorf("register middleware %s failed: %v", MiddlewareTypePlanTask, err)
 	}
 }

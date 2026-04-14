@@ -1,3 +1,4 @@
+// Plan-Execute 预构建智能体，组合规划器、执行器与重规划器
 package planexecute
 
 import (
@@ -137,11 +138,8 @@ func newReplanner(ctx context.Context, replannerConfig *planexecute.ReplannerCon
 	return planexecute.NewReplanner(ctx, &c)
 }
 
-func NewPlanExecuteAgent(ctx context.Context, agentConfig *einolib.AgentConfig, specificConfig interface{}) (adk.Agent, error) {
-	planExecuteAgentConfig, err := einolib.ParseSpecificConfig(specificConfig, func() *PlanExecuteAgentConfig { return NewPlanExecuteAgentConfig() })
-	if err != nil {
-		return nil, err
-	}
+func NewPlanExecuteAgent(ctx context.Context, agentConfig *einolib.AgentConfig, planExecuteAgentConfig *PlanExecuteAgentConfig) (adk.Agent, error) {
+	var err error
 	if planExecuteAgentConfig.Planner == nil && planExecuteAgentConfig.PlannerConfig != nil {
 		planExecuteAgentConfig.Planner, err = newPlanner(ctx, planExecuteAgentConfig.PlannerConfig)
 		if err != nil {
@@ -172,8 +170,16 @@ func NewPlanExecuteAgent(ctx context.Context, agentConfig *einolib.AgentConfig, 
 	return planexecute.New(ctx, &planExecuteAgentConfig.Config)
 }
 
+func createPlanExecuteAgent(ctx context.Context, agentConfig *einolib.AgentConfig, specificConfig interface{}) (adk.Agent, error) {
+	planExecuteAgentConfig, err := einolib.ParseSpecificConfig(specificConfig, func() *PlanExecuteAgentConfig { return NewPlanExecuteAgentConfig() })
+	if err != nil {
+		return nil, err
+	}
+	return NewPlanExecuteAgent(ctx, agentConfig, planExecuteAgentConfig)
+}
+
 func init() {
-	if err := einolib.RegisterAgentConstructFunc(AgentTypePlanExecute, einolib.GeneralAgentName, NewPlanExecuteAgent, (*PlanExecuteAgentConfig)(nil)); err != nil {
+	if err := einolib.RegisterAgentConstructFunc(AgentTypePlanExecute, einolib.GeneralAgentName, createPlanExecuteAgent, (*PlanExecuteAgentConfig)(nil)); err != nil {
 		einolib.GetLogger().Errorf("register agent %s failed: %v", AgentTypePlanExecute, err)
 	}
 }

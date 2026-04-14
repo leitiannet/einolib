@@ -17,9 +17,9 @@ type TraceMiddlewareConfig struct {
 }
 
 func NewTraceMiddlewareConfig(traceMiddlewareOptions ...TraceMiddlewareOption) *TraceMiddlewareConfig {
-	config := &TraceMiddlewareConfig{Prefix: "trace"}
-	einolib.ApplyOptions(config, traceMiddlewareOptions)
-	return config
+	traceMiddlewareConfig := &TraceMiddlewareConfig{Prefix: "trace"}
+	einolib.ApplyOptions(traceMiddlewareConfig, traceMiddlewareOptions)
+	return traceMiddlewareConfig
 }
 
 type TraceMiddlewareOption func(*TraceMiddlewareConfig)
@@ -28,11 +28,12 @@ var (
 	WithPrefix = einolib.MakeOption(func(c *TraceMiddlewareConfig, v string) { c.Prefix = v })
 )
 
-func NewTraceMiddleware(_ context.Context, config *TraceMiddlewareConfig) (*ChatModelAgentMiddleware, error) {
-	return &ChatModelAgentMiddleware{prefix: config.Prefix}, nil
+func NewTraceMiddleware(ctx context.Context, traceMiddlewareConfig *TraceMiddlewareConfig) (*ChatModelAgentMiddleware, error) {
+	_ = ctx
+	return &ChatModelAgentMiddleware{prefix: traceMiddlewareConfig.Prefix}, nil
 }
 
-func createMiddleware(ctx context.Context, middlewareConfig *einolib.MiddlewareConfig, specificConfig interface{}) (adk.ChatModelAgentMiddleware, error) {
+func createTraceMiddleware(ctx context.Context, middlewareConfig *einolib.MiddlewareConfig, specificConfig interface{}) (adk.ChatModelAgentMiddleware, error) {
 	traceMiddlewareConfig, err := einolib.ParseSpecificConfig(specificConfig, func() *TraceMiddlewareConfig { return NewTraceMiddlewareConfig() })
 	if err != nil {
 		return nil, err
@@ -41,7 +42,7 @@ func createMiddleware(ctx context.Context, middlewareConfig *einolib.MiddlewareC
 }
 
 func init() {
-	if err := einolib.RegisterMiddlewareConstructFunc(MiddlewareTypeTrace, einolib.GeneralMiddlewareName, createMiddleware, (*TraceMiddlewareConfig)(nil)); err != nil {
+	if err := einolib.RegisterMiddlewareConstructFunc(MiddlewareTypeTrace, einolib.GeneralMiddlewareName, createTraceMiddleware, (*TraceMiddlewareConfig)(nil)); err != nil {
 		einolib.GetLogger().Errorf("register middleware %s failed: %v", MiddlewareTypeTrace, err)
 	}
 }

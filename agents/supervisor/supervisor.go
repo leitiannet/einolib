@@ -1,3 +1,4 @@
+// Supervisor 预构建智能体，由监督智能体协调多个子智能体
 package supervisor
 
 import (
@@ -30,11 +31,7 @@ var (
 	WithSubAgents  = einolib.MakeAppendOption(func(c *SupervisorAgentConfig) *[]adk.Agent { return &c.SubAgents })
 )
 
-func NewSupervisorAgent(ctx context.Context, agentConfig *einolib.AgentConfig, specificConfig interface{}) (adk.Agent, error) {
-	supervisorAgentConfig, err := einolib.ParseSpecificConfig(specificConfig, func() *SupervisorAgentConfig { return NewSupervisorAgentConfig() })
-	if err != nil {
-		return nil, err
-	}
+func NewSupervisorAgent(ctx context.Context, agentConfig *einolib.AgentConfig, supervisorAgentConfig *SupervisorAgentConfig) (adk.Agent, error) {
 	if supervisorAgentConfig.Supervisor == nil {
 		return nil, fmt.Errorf("supervisor agent: supervisor is required")
 	}
@@ -49,8 +46,16 @@ func NewSupervisorAgent(ctx context.Context, agentConfig *einolib.AgentConfig, s
 	return supervisor.New(ctx, &supervisorAgentConfig.Config)
 }
 
+func createSupervisorAgent(ctx context.Context, agentConfig *einolib.AgentConfig, specificConfig interface{}) (adk.Agent, error) {
+	supervisorAgentConfig, err := einolib.ParseSpecificConfig(specificConfig, func() *SupervisorAgentConfig { return NewSupervisorAgentConfig() })
+	if err != nil {
+		return nil, err
+	}
+	return NewSupervisorAgent(ctx, agentConfig, supervisorAgentConfig)
+}
+
 func init() {
-	if err := einolib.RegisterAgentConstructFunc(AgentTypeSupervisor, einolib.GeneralAgentName, NewSupervisorAgent, (*SupervisorAgentConfig)(nil)); err != nil {
+	if err := einolib.RegisterAgentConstructFunc(AgentTypeSupervisor, einolib.GeneralAgentName, createSupervisorAgent, (*SupervisorAgentConfig)(nil)); err != nil {
 		einolib.GetLogger().Errorf("register agent %s failed: %v", AgentTypeSupervisor, err)
 	}
 }

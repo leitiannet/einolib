@@ -1,3 +1,4 @@
+// MCP 协议工具，支持 SSE、Stdio、Streamable HTTP 等传输方式
 package mcp
 
 import (
@@ -138,11 +139,7 @@ func newMCPTools(ctx context.Context, mcpToolConfig *MCPToolConfig) (*MCPToolRes
 	return result, nil
 }
 
-func NewMCPTool(ctx context.Context, toolConfig *einolib.ToolConfig, specificConfig interface{}) ([]tool.BaseTool, error) {
-	mcpToolConfig, err := einolib.ParseSpecificConfig(specificConfig, func() *MCPToolConfig { return NewMCPToolConfig() })
-	if err != nil {
-		return nil, err
-	}
+func NewMCPTool(ctx context.Context, toolConfig *einolib.ToolConfig, mcpToolConfig *MCPToolConfig) ([]tool.BaseTool, error) {
 	switch mcpToolConfig.TransportType {
 	case MCPTransportStdio:
 		if mcpToolConfig.Command == "" {
@@ -163,8 +160,16 @@ func NewMCPTool(ctx context.Context, toolConfig *einolib.ToolConfig, specificCon
 	return result.Tools, nil
 }
 
+func createMCPTool(ctx context.Context, toolConfig *einolib.ToolConfig, specificConfig interface{}) ([]tool.BaseTool, error) {
+	mcpToolConfig, err := einolib.ParseSpecificConfig(specificConfig, func() *MCPToolConfig { return NewMCPToolConfig() })
+	if err != nil {
+		return nil, err
+	}
+	return NewMCPTool(ctx, toolConfig, mcpToolConfig)
+}
+
 func init() {
-	if err := einolib.RegisterToolConstructFunc(einolib.ToolTypeMCP, einolib.GeneralToolName, NewMCPTool, (*MCPToolConfig)(nil)); err != nil {
+	if err := einolib.RegisterToolConstructFunc(einolib.ToolTypeMCP, einolib.GeneralToolName, createMCPTool, (*MCPToolConfig)(nil)); err != nil {
 		einolib.GetLogger().Errorf("register tool %s failed: %v", einolib.GeneralToolName, err)
 	}
 }

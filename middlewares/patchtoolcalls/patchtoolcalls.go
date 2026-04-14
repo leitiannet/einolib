@@ -18,9 +18,9 @@ type PatchToolCallsMiddlewareConfig struct {
 }
 
 func NewPatchToolCallsMiddlewareConfig(patchToolCallsMiddlewareOptions ...PatchToolCallsMiddlewareOption) *PatchToolCallsMiddlewareConfig {
-	config := &PatchToolCallsMiddlewareConfig{}
-	einolib.ApplyOptions(config, patchToolCallsMiddlewareOptions)
-	return config
+	patchToolCallsMiddlewareConfig := &PatchToolCallsMiddlewareConfig{}
+	einolib.ApplyOptions(patchToolCallsMiddlewareConfig, patchToolCallsMiddlewareOptions)
+	return patchToolCallsMiddlewareConfig
 }
 
 type PatchToolCallsMiddlewareOption func(*PatchToolCallsMiddlewareConfig)
@@ -31,11 +31,11 @@ var (
 	})
 )
 
-func NewPatchToolCallsMiddleware(ctx context.Context, config *PatchToolCallsMiddlewareConfig) (adk.ChatModelAgentMiddleware, error) {
-	return ptcmiddleware.New(ctx, &config.Config)
+func NewPatchToolCallsMiddleware(ctx context.Context, patchToolCallsMiddlewareConfig *PatchToolCallsMiddlewareConfig) (adk.ChatModelAgentMiddleware, error) {
+	return ptcmiddleware.New(ctx, &patchToolCallsMiddlewareConfig.Config)
 }
 
-func createMiddleware(ctx context.Context, middlewareConfig *einolib.MiddlewareConfig, specificConfig interface{}) (adk.ChatModelAgentMiddleware, error) {
+func createPatchToolCallsMiddleware(ctx context.Context, middlewareConfig *einolib.MiddlewareConfig, specificConfig interface{}) (adk.ChatModelAgentMiddleware, error) {
 	patchToolCallsMiddlewareConfig, err := einolib.ParseSpecificConfig(specificConfig, func() *PatchToolCallsMiddlewareConfig { return NewPatchToolCallsMiddlewareConfig() })
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func createMiddleware(ctx context.Context, middlewareConfig *einolib.MiddlewareC
 }
 
 func init() {
-	if err := einolib.RegisterMiddlewareConstructFunc(MiddlewareTypePatchToolCalls, einolib.GeneralMiddlewareName, createMiddleware, (*PatchToolCallsMiddlewareConfig)(nil)); err != nil {
+	if err := einolib.RegisterMiddlewareConstructFunc(MiddlewareTypePatchToolCalls, einolib.GeneralMiddlewareName, createPatchToolCallsMiddleware, (*PatchToolCallsMiddlewareConfig)(nil)); err != nil {
 		einolib.GetLogger().Errorf("register middleware %s failed: %v", MiddlewareTypePatchToolCalls, err)
 	}
 }

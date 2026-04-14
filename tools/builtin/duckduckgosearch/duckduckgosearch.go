@@ -1,3 +1,4 @@
+// DuckDuckGo 文本搜索内置工具
 package duckduckgosearch
 
 import (
@@ -36,11 +37,7 @@ var (
 	WithRegion     = einolib.MakeOption(func(c *DuckDuckGoSearchToolConfig, v duckduckgo.Region) { c.Region = v })
 )
 
-func NewDuckDuckGoSearchTool(ctx context.Context, toolConfig *einolib.ToolConfig, specificConfig interface{}) ([]tool.BaseTool, error) {
-	duckDuckGoSearchToolConfig, err := einolib.ParseSpecificConfig(specificConfig, func() *DuckDuckGoSearchToolConfig { return NewDuckDuckGoSearchToolConfig() })
-	if err != nil {
-		return nil, err
-	}
+func NewDuckDuckGoSearchTool(ctx context.Context, toolConfig *einolib.ToolConfig, duckDuckGoSearchToolConfig *DuckDuckGoSearchToolConfig) ([]tool.BaseTool, error) {
 	toolInstance, err := duckduckgo.NewTextSearchTool(ctx, &duckDuckGoSearchToolConfig.Config)
 	if err != nil {
 		return nil, err
@@ -48,8 +45,16 @@ func NewDuckDuckGoSearchTool(ctx context.Context, toolConfig *einolib.ToolConfig
 	return []tool.BaseTool{toolInstance}, nil
 }
 
+func createDuckDuckGoSearchTool(ctx context.Context, toolConfig *einolib.ToolConfig, specificConfig interface{}) ([]tool.BaseTool, error) {
+	duckDuckGoSearchToolConfig, err := einolib.ParseSpecificConfig(specificConfig, func() *DuckDuckGoSearchToolConfig { return NewDuckDuckGoSearchToolConfig() })
+	if err != nil {
+		return nil, err
+	}
+	return NewDuckDuckGoSearchTool(ctx, toolConfig, duckDuckGoSearchToolConfig)
+}
+
 func init() {
-	if err := einolib.RegisterToolConstructFunc(einolib.ToolTypeBuiltin, DuckDuckGoSearchToolName, NewDuckDuckGoSearchTool, (*DuckDuckGoSearchToolConfig)(nil)); err != nil {
+	if err := einolib.RegisterToolConstructFunc(einolib.ToolTypeBuiltin, DuckDuckGoSearchToolName, createDuckDuckGoSearchTool, (*DuckDuckGoSearchToolConfig)(nil)); err != nil {
 		einolib.GetLogger().Errorf("register tool %s failed: %v", DuckDuckGoSearchToolName, err)
 	}
 }

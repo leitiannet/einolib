@@ -1,3 +1,4 @@
+// OpenAI 兼容的聊天模型（含 Azure OpenAI）
 package openai
 
 import (
@@ -12,7 +13,17 @@ const (
 	ModelTypeOpenAI einolib.ModelType = "openai"
 )
 
-func NewOpenAIChatModel(ctx context.Context, modelConfig *einolib.ModelConfig, specificConfig interface{}) (model.ToolCallingChatModel, error) {
+type OpenAIModelConfig struct{}
+
+func NewOpenAIModelConfig(openAIModelOptions ...OpenAIModelOption) *OpenAIModelConfig {
+	openAIModelConfig := &OpenAIModelConfig{}
+	einolib.ApplyOptions(openAIModelConfig, openAIModelOptions)
+	return openAIModelConfig
+}
+
+type OpenAIModelOption func(*OpenAIModelConfig)
+
+func NewOpenAIChatModel(ctx context.Context, modelConfig *einolib.ModelConfig, openAIModelConfig *OpenAIModelConfig) (model.ToolCallingChatModel, error) {
 	return openai.NewChatModel(ctx, &openai.ChatModelConfig{
 		Model:   modelConfig.ModelName,
 		BaseURL: modelConfig.BaseURL,
@@ -21,8 +32,16 @@ func NewOpenAIChatModel(ctx context.Context, modelConfig *einolib.ModelConfig, s
 	})
 }
 
+func createOpenAIChatModel(ctx context.Context, modelConfig *einolib.ModelConfig, specificConfig interface{}) (model.ToolCallingChatModel, error) {
+	openAIModelConfig, err := einolib.ParseSpecificConfig(specificConfig, func() *OpenAIModelConfig { return NewOpenAIModelConfig() })
+	if err != nil {
+		return nil, err
+	}
+	return NewOpenAIChatModel(ctx, modelConfig, openAIModelConfig)
+}
+
 func init() {
-	if err := einolib.RegisterModelConstructFunc(ModelTypeOpenAI, NewOpenAIChatModel); err != nil {
+	if err := einolib.RegisterModelConstructFunc(ModelTypeOpenAI, createOpenAIChatModel, (*OpenAIModelConfig)(nil)); err != nil {
 		einolib.GetLogger().Errorf("register model %s failed: %v", ModelTypeOpenAI, err)
 	}
 }

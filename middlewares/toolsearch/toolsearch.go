@@ -19,9 +19,9 @@ type ToolSearchMiddlewareConfig struct {
 }
 
 func NewToolSearchMiddlewareConfig(toolSearchMiddlewareOptions ...ToolSearchMiddlewareOption) *ToolSearchMiddlewareConfig {
-	config := &ToolSearchMiddlewareConfig{}
-	einolib.ApplyOptions(config, toolSearchMiddlewareOptions)
-	return config
+	toolSearchMiddlewareConfig := &ToolSearchMiddlewareConfig{}
+	einolib.ApplyOptions(toolSearchMiddlewareConfig, toolSearchMiddlewareOptions)
+	return toolSearchMiddlewareConfig
 }
 
 type ToolSearchMiddlewareOption func(*ToolSearchMiddlewareConfig)
@@ -31,11 +31,11 @@ var (
 	WithUseModelToolSearch = einolib.MakeOption(func(c *ToolSearchMiddlewareConfig, v bool) { c.UseModelToolSearch = v })
 )
 
-func NewToolSearchMiddleware(ctx context.Context, config *ToolSearchMiddlewareConfig) (adk.ChatModelAgentMiddleware, error) {
-	return tsmiddleware.New(ctx, &config.Config)
+func NewToolSearchMiddleware(ctx context.Context, toolSearchMiddlewareConfig *ToolSearchMiddlewareConfig) (adk.ChatModelAgentMiddleware, error) {
+	return tsmiddleware.New(ctx, &toolSearchMiddlewareConfig.Config)
 }
 
-func createMiddleware(ctx context.Context, middlewareConfig *einolib.MiddlewareConfig, specificConfig interface{}) (adk.ChatModelAgentMiddleware, error) {
+func createToolSearchMiddleware(ctx context.Context, middlewareConfig *einolib.MiddlewareConfig, specificConfig interface{}) (adk.ChatModelAgentMiddleware, error) {
 	toolSearchMiddlewareConfig, err := einolib.ParseSpecificConfig(specificConfig, func() *ToolSearchMiddlewareConfig { return NewToolSearchMiddlewareConfig() })
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func createMiddleware(ctx context.Context, middlewareConfig *einolib.MiddlewareC
 }
 
 func init() {
-	if err := einolib.RegisterMiddlewareConstructFunc(MiddlewareTypeToolSearch, einolib.GeneralMiddlewareName, createMiddleware, (*ToolSearchMiddlewareConfig)(nil)); err != nil {
+	if err := einolib.RegisterMiddlewareConstructFunc(MiddlewareTypeToolSearch, einolib.GeneralMiddlewareName, createToolSearchMiddleware, (*ToolSearchMiddlewareConfig)(nil)); err != nil {
 		einolib.GetLogger().Errorf("register middleware %s failed: %v", MiddlewareTypeToolSearch, err)
 	}
 }

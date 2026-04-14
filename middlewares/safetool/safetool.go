@@ -17,9 +17,9 @@ type SafeToolMiddlewareConfig struct {
 }
 
 func NewSafeToolMiddlewareConfig(safeToolMiddlewareOptions ...SafeToolMiddlewareOption) *SafeToolMiddlewareConfig {
-	config := &SafeToolMiddlewareConfig{ErrorFormat: "[tool error] %v"}
-	einolib.ApplyOptions(config, safeToolMiddlewareOptions)
-	return config
+	safeToolMiddlewareConfig := &SafeToolMiddlewareConfig{ErrorFormat: "[tool error] %v"}
+	einolib.ApplyOptions(safeToolMiddlewareConfig, safeToolMiddlewareOptions)
+	return safeToolMiddlewareConfig
 }
 
 type SafeToolMiddlewareOption func(*SafeToolMiddlewareConfig)
@@ -28,13 +28,14 @@ var (
 	WithErrorFormat = einolib.MakeOption(func(c *SafeToolMiddlewareConfig, v string) { c.ErrorFormat = v })
 )
 
-func NewSafeToolMiddleware(_ context.Context, config *SafeToolMiddlewareConfig) (*ChatModelAgentMiddleware, error) {
+func NewSafeToolMiddleware(ctx context.Context, safeToolMiddlewareConfig *SafeToolMiddlewareConfig) (*ChatModelAgentMiddleware, error) {
+	_ = ctx
 	return &ChatModelAgentMiddleware{
-		errorFormat: config.ErrorFormat,
+		errorFormat: safeToolMiddlewareConfig.ErrorFormat,
 	}, nil
 }
 
-func createMiddleware(ctx context.Context, middlewareConfig *einolib.MiddlewareConfig, specificConfig interface{}) (adk.ChatModelAgentMiddleware, error) {
+func createSafeToolMiddleware(ctx context.Context, middlewareConfig *einolib.MiddlewareConfig, specificConfig interface{}) (adk.ChatModelAgentMiddleware, error) {
 	safeToolMiddlewareConfig, err := einolib.ParseSpecificConfig(specificConfig, func() *SafeToolMiddlewareConfig { return NewSafeToolMiddlewareConfig() })
 	if err != nil {
 		return nil, err
@@ -43,7 +44,7 @@ func createMiddleware(ctx context.Context, middlewareConfig *einolib.MiddlewareC
 }
 
 func init() {
-	if err := einolib.RegisterMiddlewareConstructFunc(MiddlewareTypeSafeTool, einolib.GeneralMiddlewareName, createMiddleware, (*SafeToolMiddlewareConfig)(nil)); err != nil {
+	if err := einolib.RegisterMiddlewareConstructFunc(MiddlewareTypeSafeTool, einolib.GeneralMiddlewareName, createSafeToolMiddleware, (*SafeToolMiddlewareConfig)(nil)); err != nil {
 		einolib.GetLogger().Errorf("register middleware %s failed: %v", MiddlewareTypeSafeTool, err)
 	}
 }

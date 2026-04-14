@@ -33,6 +33,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	traceChatMW, err := trace.NewTraceMiddleware(ctx, trace.NewTraceMiddlewareConfig())
+	if err != nil {
+		panic(err)
+	}
 	// 创建智能体
 	agent, err := einolib.NewAgent(ctx,
 		einolib.WithAgentType(chatmodel.AgentTypeChatModel),
@@ -44,8 +48,8 @@ func main() {
 			chatmodel.WithToolsConfig(adk.ToolsConfig{
 				ToolsNodeConfig: compose.ToolsNodeConfig{Tools: tools},
 			}),
-			chatmodel.WithMiddlewares(trace.AgentMiddleware()),
-			chatmodel.WithHandlers(trace.NewChatModelAgentMiddleware()),
+			chatmodel.WithMiddlewares(trace.NewAgentMiddleware()),
+			chatmodel.WithHandlers(traceChatMW),
 		)),
 	)
 	if err != nil {

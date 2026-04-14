@@ -18,9 +18,9 @@ type AgentsMDMiddlewareConfig struct {
 }
 
 func NewAgentsMDMiddlewareConfig(agentsMDMiddlewareOptions ...AgentsMDMiddlewareOption) *AgentsMDMiddlewareConfig {
-	config := &AgentsMDMiddlewareConfig{}
-	einolib.ApplyOptions(config, agentsMDMiddlewareOptions)
-	return config
+	agentsMDMiddlewareConfig := &AgentsMDMiddlewareConfig{}
+	einolib.ApplyOptions(agentsMDMiddlewareConfig, agentsMDMiddlewareOptions)
+	return agentsMDMiddlewareConfig
 }
 
 type AgentsMDMiddlewareOption func(*AgentsMDMiddlewareConfig)
@@ -32,11 +32,11 @@ var (
 	WithOnLoadWarning       = einolib.MakeOption(func(c *AgentsMDMiddlewareConfig, v func(string, error)) { c.OnLoadWarning = v })
 )
 
-func NewAgentsMDMiddleware(ctx context.Context, config *AgentsMDMiddlewareConfig) (adk.ChatModelAgentMiddleware, error) {
-	return amdmiddleware.New(ctx, &config.Config)
+func NewAgentsMDMiddleware(ctx context.Context, agentsMDMiddlewareConfig *AgentsMDMiddlewareConfig) (adk.ChatModelAgentMiddleware, error) {
+	return amdmiddleware.New(ctx, &agentsMDMiddlewareConfig.Config)
 }
 
-func createMiddleware(ctx context.Context, middlewareConfig *einolib.MiddlewareConfig, specificConfig interface{}) (adk.ChatModelAgentMiddleware, error) {
+func createAgentsMDMiddleware(ctx context.Context, middlewareConfig *einolib.MiddlewareConfig, specificConfig interface{}) (adk.ChatModelAgentMiddleware, error) {
 	agentsMDMiddlewareConfig, err := einolib.ParseSpecificConfig(specificConfig, func() *AgentsMDMiddlewareConfig { return NewAgentsMDMiddlewareConfig() })
 	if err != nil {
 		return nil, err
@@ -45,7 +45,7 @@ func createMiddleware(ctx context.Context, middlewareConfig *einolib.MiddlewareC
 }
 
 func init() {
-	if err := einolib.RegisterMiddlewareConstructFunc(MiddlewareTypeAgentsMD, einolib.GeneralMiddlewareName, createMiddleware, (*AgentsMDMiddlewareConfig)(nil)); err != nil {
+	if err := einolib.RegisterMiddlewareConstructFunc(MiddlewareTypeAgentsMD, einolib.GeneralMiddlewareName, createAgentsMDMiddleware, (*AgentsMDMiddlewareConfig)(nil)); err != nil {
 		einolib.GetLogger().Errorf("register middleware %s failed: %v", MiddlewareTypeAgentsMD, err)
 	}
 }

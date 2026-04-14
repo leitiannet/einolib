@@ -43,11 +43,7 @@ var (
 	WithMaxIterations = einolib.MakeOption(func(c *LoopWorkflowAgentConfig, v int) { c.MaxIterations = v })
 )
 
-func NewLoopAgent(ctx context.Context, agentConfig *einolib.AgentConfig, specificConfig interface{}) (adk.Agent, error) {
-	cfg, err := einolib.ParseSpecificConfig(specificConfig, func() *LoopWorkflowAgentConfig { return NewLoopWorkflowAgentConfig() })
-	if err != nil {
-		return nil, err
-	}
+func NewLoopWorkflowAgent(ctx context.Context, agentConfig *einolib.AgentConfig, cfg *LoopWorkflowAgentConfig) (adk.Agent, error) {
 	if err := validateAndApplyAgentMeta(agentConfig, &cfg.WorkflowAgentConfigCommon); err != nil {
 		return nil, err
 	}
@@ -59,8 +55,16 @@ func NewLoopAgent(ctx context.Context, agentConfig *einolib.AgentConfig, specifi
 	})
 }
 
+func createLoopAgent(ctx context.Context, agentConfig *einolib.AgentConfig, specificConfig interface{}) (adk.Agent, error) {
+	cfg, err := einolib.ParseSpecificConfig(specificConfig, func() *LoopWorkflowAgentConfig { return NewLoopWorkflowAgentConfig() })
+	if err != nil {
+		return nil, err
+	}
+	return NewLoopWorkflowAgent(ctx, agentConfig, cfg)
+}
+
 func init() {
-	if err := einolib.RegisterAgentConstructFunc(AgentTypeWorkflowLoop, einolib.GeneralAgentName, NewLoopAgent, (*LoopWorkflowAgentConfig)(nil)); err != nil {
+	if err := einolib.RegisterAgentConstructFunc(AgentTypeWorkflowLoop, einolib.GeneralAgentName, createLoopAgent, (*LoopWorkflowAgentConfig)(nil)); err != nil {
 		einolib.GetLogger().Errorf("register agent %s failed: %v", AgentTypeWorkflowLoop, err)
 	}
 }

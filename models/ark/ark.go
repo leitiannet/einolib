@@ -1,3 +1,4 @@
+// 火山引擎方舟（ARK）聊天模型
 package ark
 
 import (
@@ -12,7 +13,17 @@ const (
 	ModelTypeARK einolib.ModelType = "ark"
 )
 
-func NewARKChatModel(ctx context.Context, modelConfig *einolib.ModelConfig, specificConfig interface{}) (model.ToolCallingChatModel, error) {
+type ARKModelConfig struct{}
+
+func NewARKModelConfig(arkModelOptions ...ARKModelOption) *ARKModelConfig {
+	arkModelConfig := &ARKModelConfig{}
+	einolib.ApplyOptions(arkModelConfig, arkModelOptions)
+	return arkModelConfig
+}
+
+type ARKModelOption func(*ARKModelConfig)
+
+func NewARKChatModel(ctx context.Context, modelConfig *einolib.ModelConfig, arkModelConfig *ARKModelConfig) (model.ToolCallingChatModel, error) {
 	return ark.NewChatModel(ctx, &ark.ChatModelConfig{
 		Model:   modelConfig.ModelName,
 		BaseURL: modelConfig.BaseURL,
@@ -20,8 +31,16 @@ func NewARKChatModel(ctx context.Context, modelConfig *einolib.ModelConfig, spec
 	})
 }
 
+func createARKChatModel(ctx context.Context, modelConfig *einolib.ModelConfig, specificConfig interface{}) (model.ToolCallingChatModel, error) {
+	arkModelConfig, err := einolib.ParseSpecificConfig(specificConfig, func() *ARKModelConfig { return NewARKModelConfig() })
+	if err != nil {
+		return nil, err
+	}
+	return NewARKChatModel(ctx, modelConfig, arkModelConfig)
+}
+
 func init() {
-	if err := einolib.RegisterModelConstructFunc(ModelTypeARK, NewARKChatModel); err != nil {
+	if err := einolib.RegisterModelConstructFunc(ModelTypeARK, createARKChatModel, (*ARKModelConfig)(nil)); err != nil {
 		einolib.GetLogger().Errorf("register model %s failed: %v", ModelTypeARK, err)
 	}
 }

@@ -17,7 +17,8 @@ type ChatModelAgentMiddleware struct {
 	errorFormat string
 }
 
-func (m *ChatModelAgentMiddleware) WrapInvokableToolCall(_ context.Context, endpoint adk.InvokableToolCallEndpoint, _ *adk.ToolContext) (adk.InvokableToolCallEndpoint, error) {
+func (m *ChatModelAgentMiddleware) WrapInvokableToolCall(ctx context.Context, endpoint adk.InvokableToolCallEndpoint, toolCtx *adk.ToolContext) (adk.InvokableToolCallEndpoint, error) {
+	_, _ = ctx, toolCtx
 	return func(ctx context.Context, argumentsInJSON string, opts ...tool.Option) (string, error) {
 		result, err := endpoint(ctx, argumentsInJSON, opts...)
 		if err != nil {
@@ -30,7 +31,8 @@ func (m *ChatModelAgentMiddleware) WrapInvokableToolCall(_ context.Context, endp
 	}, nil
 }
 
-func (m *ChatModelAgentMiddleware) WrapStreamableToolCall(_ context.Context, endpoint adk.StreamableToolCallEndpoint, _ *adk.ToolContext) (adk.StreamableToolCallEndpoint, error) {
+func (m *ChatModelAgentMiddleware) WrapStreamableToolCall(ctx context.Context, endpoint adk.StreamableToolCallEndpoint, toolCtx *adk.ToolContext) (adk.StreamableToolCallEndpoint, error) {
+	_, _ = ctx, toolCtx
 	return func(ctx context.Context, argumentsInJSON string, opts ...tool.Option) (*schema.StreamReader[string], error) {
 		sr, err := endpoint(ctx, argumentsInJSON, opts...)
 		if err != nil {

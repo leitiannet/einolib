@@ -19,9 +19,9 @@ type SummarizationMiddlewareConfig struct {
 }
 
 func NewSummarizationMiddlewareConfig(summarizationMiddlewareOptions ...SummarizationMiddlewareOption) *SummarizationMiddlewareConfig {
-	config := &SummarizationMiddlewareConfig{}
-	einolib.ApplyOptions(config, summarizationMiddlewareOptions)
-	return config
+	summarizationMiddlewareConfig := &SummarizationMiddlewareConfig{}
+	einolib.ApplyOptions(summarizationMiddlewareConfig, summarizationMiddlewareOptions)
+	return summarizationMiddlewareConfig
 }
 
 type SummarizationMiddlewareOption func(*SummarizationMiddlewareConfig)
@@ -42,11 +42,11 @@ var (
 	})
 )
 
-func NewSummarizationMiddleware(ctx context.Context, config *SummarizationMiddlewareConfig) (adk.ChatModelAgentMiddleware, error) {
-	return summiddleware.New(ctx, &config.Config)
+func NewSummarizationMiddleware(ctx context.Context, summarizationMiddlewareConfig *SummarizationMiddlewareConfig) (adk.ChatModelAgentMiddleware, error) {
+	return summiddleware.New(ctx, &summarizationMiddlewareConfig.Config)
 }
 
-func createMiddleware(ctx context.Context, middlewareConfig *einolib.MiddlewareConfig, specificConfig interface{}) (adk.ChatModelAgentMiddleware, error) {
+func createSummarizationMiddleware(ctx context.Context, middlewareConfig *einolib.MiddlewareConfig, specificConfig interface{}) (adk.ChatModelAgentMiddleware, error) {
 	summarizationMiddlewareConfig, err := einolib.ParseSpecificConfig(specificConfig, func() *SummarizationMiddlewareConfig { return NewSummarizationMiddlewareConfig() })
 	if err != nil {
 		return nil, err
@@ -55,7 +55,7 @@ func createMiddleware(ctx context.Context, middlewareConfig *einolib.MiddlewareC
 }
 
 func init() {
-	if err := einolib.RegisterMiddlewareConstructFunc(MiddlewareTypeSummarization, einolib.GeneralMiddlewareName, createMiddleware, (*SummarizationMiddlewareConfig)(nil)); err != nil {
+	if err := einolib.RegisterMiddlewareConstructFunc(MiddlewareTypeSummarization, einolib.GeneralMiddlewareName, createSummarizationMiddleware, (*SummarizationMiddlewareConfig)(nil)); err != nil {
 		einolib.GetLogger().Errorf("register middleware %s failed: %v", MiddlewareTypeSummarization, err)
 	}
 }

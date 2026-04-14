@@ -19,9 +19,9 @@ type ReductionMiddlewareConfig struct {
 }
 
 func NewReductionMiddlewareConfig(reductionMiddlewareOptions ...ReductionMiddlewareOption) *ReductionMiddlewareConfig {
-	config := &ReductionMiddlewareConfig{}
-	einolib.ApplyOptions(config, reductionMiddlewareOptions)
-	return config
+	reductionMiddlewareConfig := &ReductionMiddlewareConfig{}
+	einolib.ApplyOptions(reductionMiddlewareConfig, reductionMiddlewareOptions)
+	return reductionMiddlewareConfig
 }
 
 type ReductionMiddlewareOption func(*ReductionMiddlewareConfig)
@@ -48,11 +48,11 @@ var (
 	})
 )
 
-func NewReductionMiddleware(ctx context.Context, config *ReductionMiddlewareConfig) (adk.ChatModelAgentMiddleware, error) {
-	return rdmiddleware.New(ctx, &config.Config)
+func NewReductionMiddleware(ctx context.Context, reductionMiddlewareConfig *ReductionMiddlewareConfig) (adk.ChatModelAgentMiddleware, error) {
+	return rdmiddleware.New(ctx, &reductionMiddlewareConfig.Config)
 }
 
-func createMiddleware(ctx context.Context, middlewareConfig *einolib.MiddlewareConfig, specificConfig interface{}) (adk.ChatModelAgentMiddleware, error) {
+func createReductionMiddleware(ctx context.Context, middlewareConfig *einolib.MiddlewareConfig, specificConfig interface{}) (adk.ChatModelAgentMiddleware, error) {
 	reductionMiddlewareConfig, err := einolib.ParseSpecificConfig(specificConfig, func() *ReductionMiddlewareConfig { return NewReductionMiddlewareConfig() })
 	if err != nil {
 		return nil, err
@@ -61,7 +61,7 @@ func createMiddleware(ctx context.Context, middlewareConfig *einolib.MiddlewareC
 }
 
 func init() {
-	if err := einolib.RegisterMiddlewareConstructFunc(MiddlewareTypeReduction, einolib.GeneralMiddlewareName, createMiddleware, (*ReductionMiddlewareConfig)(nil)); err != nil {
+	if err := einolib.RegisterMiddlewareConstructFunc(MiddlewareTypeReduction, einolib.GeneralMiddlewareName, createReductionMiddleware, (*ReductionMiddlewareConfig)(nil)); err != nil {
 		einolib.GetLogger().Errorf("register middleware %s failed: %v", MiddlewareTypeReduction, err)
 	}
 }

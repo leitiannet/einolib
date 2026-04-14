@@ -19,9 +19,9 @@ type SkillMiddlewareConfig struct {
 }
 
 func NewSkillMiddlewareConfig(skillMiddlewareOptions ...SkillMiddlewareOption) *SkillMiddlewareConfig {
-	config := &SkillMiddlewareConfig{}
-	einolib.ApplyOptions(config, skillMiddlewareOptions)
-	return config
+	skillMiddlewareConfig := &SkillMiddlewareConfig{}
+	einolib.ApplyOptions(skillMiddlewareConfig, skillMiddlewareOptions)
+	return skillMiddlewareConfig
 }
 
 type SkillMiddlewareOption func(*SkillMiddlewareConfig)
@@ -49,11 +49,11 @@ var (
 	})
 )
 
-func NewSkillMiddleware(ctx context.Context, config *SkillMiddlewareConfig) (adk.ChatModelAgentMiddleware, error) {
-	return skmiddleware.NewMiddleware(ctx, &config.Config)
+func NewSkillMiddleware(ctx context.Context, skillMiddlewareConfig *SkillMiddlewareConfig) (adk.ChatModelAgentMiddleware, error) {
+	return skmiddleware.NewMiddleware(ctx, &skillMiddlewareConfig.Config)
 }
 
-func createMiddleware(ctx context.Context, middlewareConfig *einolib.MiddlewareConfig, specificConfig interface{}) (adk.ChatModelAgentMiddleware, error) {
+func createSkillMiddleware(ctx context.Context, middlewareConfig *einolib.MiddlewareConfig, specificConfig interface{}) (adk.ChatModelAgentMiddleware, error) {
 	skillMiddlewareConfig, err := einolib.ParseSpecificConfig(specificConfig, func() *SkillMiddlewareConfig { return NewSkillMiddlewareConfig() })
 	if err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ func createMiddleware(ctx context.Context, middlewareConfig *einolib.MiddlewareC
 }
 
 func init() {
-	if err := einolib.RegisterMiddlewareConstructFunc(MiddlewareTypeSkill, einolib.GeneralMiddlewareName, createMiddleware, (*SkillMiddlewareConfig)(nil)); err != nil {
+	if err := einolib.RegisterMiddlewareConstructFunc(MiddlewareTypeSkill, einolib.GeneralMiddlewareName, createSkillMiddleware, (*SkillMiddlewareConfig)(nil)); err != nil {
 		einolib.GetLogger().Errorf("register middleware %s failed: %v", MiddlewareTypeSkill, err)
 	}
 }
