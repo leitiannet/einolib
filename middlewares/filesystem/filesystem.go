@@ -1,4 +1,6 @@
-// 注入文件操作工具和命令执行工具
+// 文件操作和命令执行中间件，每个工具均可独立配置名称、描述、自定义实现或禁用，工具描述和系统提示词支持中英文切换
+// 文件操作：ls、read_file、write_file、edit_file、glob、grep
+// 命令执行：execute
 package filesystem
 
 import (
@@ -26,6 +28,14 @@ func NewFileSystemMiddlewareConfig(fileSystemMiddlewareOptions ...FileSystemMidd
 
 type FileSystemMiddlewareOption func(*FileSystemMiddlewareConfig)
 
+func withToolDisabled(tc *fsmiddleware.ToolConfig) *fsmiddleware.ToolConfig {
+	if tc == nil {
+		tc = &fsmiddleware.ToolConfig{}
+	}
+	tc.Disable = true
+	return tc
+}
+
 var (
 	WithBackend             = einolib.MakeOption(func(c *FileSystemMiddlewareConfig, v fsbackend.Backend) { c.Backend = v })
 	WithShell               = einolib.MakeOption(func(c *FileSystemMiddlewareConfig, v fsbackend.Shell) { c.Shell = v })
@@ -37,6 +47,33 @@ var (
 	WithGlobToolConfig      = einolib.MakeOption(func(c *FileSystemMiddlewareConfig, v *fsmiddleware.ToolConfig) { c.GlobToolConfig = v })
 	WithGrepToolConfig      = einolib.MakeOption(func(c *FileSystemMiddlewareConfig, v *fsmiddleware.ToolConfig) { c.GrepToolConfig = v })
 	WithCustomSystemPrompt  = einolib.MakeOption(func(c *FileSystemMiddlewareConfig, v string) { c.CustomSystemPrompt = &v })
+	// 与With*ToolConfig中设置Disable: true等价
+	WithLsToolDisabled = FileSystemMiddlewareOption(func(c *FileSystemMiddlewareConfig) {
+		c.LsToolConfig = withToolDisabled(c.LsToolConfig)
+	})
+	WithReadFileToolDisabled = FileSystemMiddlewareOption(func(c *FileSystemMiddlewareConfig) {
+		c.ReadFileToolConfig = withToolDisabled(c.ReadFileToolConfig)
+	})
+	WithWriteFileToolDisabled = FileSystemMiddlewareOption(func(c *FileSystemMiddlewareConfig) {
+		c.WriteFileToolConfig = withToolDisabled(c.WriteFileToolConfig)
+	})
+	WithEditFileToolDisabled = FileSystemMiddlewareOption(func(c *FileSystemMiddlewareConfig) {
+		c.EditFileToolConfig = withToolDisabled(c.EditFileToolConfig)
+	})
+	WithGlobToolDisabled = FileSystemMiddlewareOption(func(c *FileSystemMiddlewareConfig) {
+		c.GlobToolConfig = withToolDisabled(c.GlobToolConfig)
+	})
+	WithGrepToolDisabled = FileSystemMiddlewareOption(func(c *FileSystemMiddlewareConfig) {
+		c.GrepToolConfig = withToolDisabled(c.GrepToolConfig)
+	})
+	WithAllFileToolsDisabled = FileSystemMiddlewareOption(func(c *FileSystemMiddlewareConfig) {
+		c.LsToolConfig = withToolDisabled(c.LsToolConfig)
+		c.ReadFileToolConfig = withToolDisabled(c.ReadFileToolConfig)
+		c.WriteFileToolConfig = withToolDisabled(c.WriteFileToolConfig)
+		c.EditFileToolConfig = withToolDisabled(c.EditFileToolConfig)
+		c.GlobToolConfig = withToolDisabled(c.GlobToolConfig)
+		c.GrepToolConfig = withToolDisabled(c.GrepToolConfig)
+	})
 )
 
 func NewFileSystemMiddleware(ctx context.Context, fileSystemMiddlewareConfig *FileSystemMiddlewareConfig) (adk.ChatModelAgentMiddleware, error) {
