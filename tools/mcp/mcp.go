@@ -169,7 +169,7 @@ func createMCPTool(ctx context.Context, toolConfig *einolib.ToolConfig, specific
 }
 
 func init() {
-	if err := einolib.RegisterToolConstructFunc(einolib.ToolTypeMCP, einolib.GeneralToolName, createMCPTool, (*MCPToolConfig)(nil)); err != nil {
-		einolib.GetLogger().Errorf("register tool %s failed: %v", einolib.GeneralToolName, err)
+	if err := einolib.RegisterToolConstructFunc(einolib.ToolTypeMCP, einolib.ToolNameGeneral, createMCPTool, (*MCPToolConfig)(nil)); err != nil {
+		einolib.GetLogger().Errorf("register tool %s failed: %v", einolib.ToolNameGeneral, err)
 	}
 }

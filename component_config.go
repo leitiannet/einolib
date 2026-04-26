@@ -1,20 +1,31 @@
 package einolib
 
+import "github.com/cloudwego/eino/components"
+
 // 组件配置接口
 type ComponentConfiger interface {
 	GetConfig(desc ComponentDescriber) interface{}
 	SetConfig(desc ComponentDescriber, value interface{})
 }
 
-type ComponentConfig struct {
-	ConfigMap *SyncMap // 存储特定组件的配置信息
+type componentConfig struct {
+	componentDescriber          // 组件描述
+	configMap          *SyncMap // 存储特定组件的配置信息
 }
 
-func (cc *ComponentConfig) GetConfig(desc ComponentDescriber) interface{} {
-	if cc == nil || cc.ConfigMap == nil {
+func NewComponentConfig(component components.Component, typ, name string) componentConfig {
+	config := &componentConfig{
+		componentDescriber: NewComponentDescriber(component, typ, name),
+		configMap:          NewSyncMap(),
+	}
+	return *config
+}
+
+func (cc *componentConfig) GetConfig(desc ComponentDescriber) interface{} {
+	if cc == nil || cc.configMap == nil {
 		return nil
 	}
-	value, ok := cc.ConfigMap.Get(desc.Key())
+	value, ok := cc.configMap.Get(desc.Key())
 	if !ok {
 		return nil
 	}
@@ -22,12 +33,12 @@ func (cc *ComponentConfig) GetConfig(desc ComponentDescriber) interface{} {
 }
 
 // nil会作为有效值写入，表示存在特定组件的配置
-func (cc *ComponentConfig) SetConfig(desc ComponentDescriber, value interface{}) {
+func (cc *componentConfig) SetConfig(desc ComponentDescriber, value interface{}) {
 	if cc == nil {
 		return
 	}
-	if cc.ConfigMap == nil {
-		cc.ConfigMap = NewSyncMap()
+	if cc.configMap == nil {
+		cc.configMap = NewSyncMap()
 	}
-	cc.ConfigMap.Set(desc.Key(), value)
+	cc.configMap.Set(desc.Key(), value)
 }

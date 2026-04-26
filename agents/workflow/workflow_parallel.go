@@ -7,8 +7,6 @@ import (
 	"github.com/leitiannet/einolib"
 )
 
-const AgentTypeWorkflowParallel einolib.AgentType = "workflow_parallel"
-
 type ParallelWorkflowAgentConfig struct {
 	WorkflowAgentConfigCommon
 }
@@ -39,7 +37,7 @@ func createParallelAgent(ctx context.Context, agentConfig *einolib.AgentConfig, 
 }
 
 func init() {
-	if err := einolib.RegisterAgentConstructFunc(AgentTypeWorkflowParallel, einolib.GeneralAgentName, createParallelAgent, (*ParallelWorkflowAgentConfig)(nil)); err != nil {
-		einolib.GetLogger().Errorf("register agent %s failed: %v", AgentTypeWorkflowParallel, err)
+	if err := einolib.RegisterAgentConstructFunc(einolib.AgentTypeWorkflowParallel, einolib.AgentNameGeneral, createParallelAgent, (*ParallelWorkflowAgentConfig)(nil)); err != nil {
+		einolib.GetLogger().Errorf("register agent %s failed: %v", einolib.AgentTypeWorkflowParallel, err)
 	}
 }

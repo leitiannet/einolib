@@ -9,10 +9,6 @@ import (
 	"github.com/leitiannet/einolib"
 )
 
-const (
-	MiddlewareTypeAgentsMD einolib.MiddlewareType = "agentsmd"
-)
-
 type AgentsMDMiddlewareConfig struct {
 	amdmiddleware.Config // 内嵌结构体
 }
@@ -45,7 +41,7 @@ func createAgentsMDMiddleware(ctx context.Context, middlewareConfig *einolib.Mid
 }
 
 func init() {
-	if err := einolib.RegisterMiddlewareConstructFunc(MiddlewareTypeAgentsMD, einolib.GeneralMiddlewareName, createAgentsMDMiddleware, (*AgentsMDMiddlewareConfig)(nil)); err != nil {
-		einolib.GetLogger().Errorf("register middleware %s failed: %v", MiddlewareTypeAgentsMD, err)
+	if err := einolib.RegisterMiddlewareConstructFunc(einolib.MiddlewareTypeAgentsMD, einolib.MiddlewareNameGeneral, createAgentsMDMiddleware, (*AgentsMDMiddlewareConfig)(nil)); err != nil {
+		einolib.GetLogger().Errorf("register middleware %s failed: %v", einolib.MiddlewareTypeAgentsMD, err)
 	}
 }

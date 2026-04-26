@@ -2,8 +2,6 @@ package einolib
 
 import (
 	"context"
-	"fmt"
-	"strings"
 
 	"github.com/cloudwego/eino/adk/filesystem"
 )
@@ -18,55 +16,33 @@ type Operator interface {
 // 执行器类型
 type OperatorType string
 
-// 其他执行器类型由operators子包定义
-const OperatorTypeUnknown OperatorType = "" // 未知类型执行器
+const (
+	OperatorTypeAgentKit OperatorType = "agentkit"
+	OperatorTypeLocal    OperatorType = "local"
+	OperatorTypeMemory   OperatorType = "memory"
+)
 
-const GeneralOperatorName = "*" // 通用执行器名称
+const OperatorNameGeneral = ComponentNameGeneral // 通用执行器名称
 
 // 执行器描述
 type OperatorDescriber struct {
-	OperatorType OperatorType // 执行器类型
-	OperatorName string       // 执行器名称
+	componentDescriber
 }
 
 func NewOperatorDescriber(operatorType OperatorType, operatorName string) *OperatorDescriber {
 	return &OperatorDescriber{
-		OperatorType: operatorType,
-		OperatorName: operatorName,
+		componentDescriber: NewComponentDescriber(ComponentOfADKOperator, string(operatorType), operatorName),
 	}
-}
-
-func (od *OperatorDescriber) String() string {
-	return fmt.Sprintf("%s:%s", od.OperatorType, od.OperatorName)
-}
-
-func (od *OperatorDescriber) Key() string {
-	return strings.ToLower(od.String())
-}
-
-func (od *OperatorDescriber) Validate() error {
-	if od.OperatorType == OperatorTypeUnknown {
-		return fmt.Errorf("operatorType invalid: %q", od.OperatorType)
-	}
-	if od.OperatorName == "" {
-		return fmt.Errorf("operatorName invalid: %q", od.OperatorName)
-	}
-	return nil
 }
 
 // 执行器配置
 type OperatorConfig struct {
-	ComponentConfig                  // 特定配置
-	OperatorType        OperatorType // 执行器类型
-	OperatorName        string       // 执行器名称
-	OperatorDescription string       // 执行器描述
+	componentConfig // 公共元数据
 }
 
 func NewOperatorConfig(operatorOptions ...OperatorOption) *OperatorConfig {
 	operatorConfig := &OperatorConfig{
-		ComponentConfig: ComponentConfig{
-			ConfigMap: NewSyncMap(),
-		},
+		componentConfig: NewComponentConfig(ComponentOfADKOperator, "", ""),
 	}
 	ApplyOptions(operatorConfig, operatorOptions)
 	return operatorConfig
@@ -76,9 +52,9 @@ func NewOperatorConfig(operatorOptions ...OperatorOption) *OperatorConfig {
 type OperatorOption func(operatorConfig *OperatorConfig)
 
 var (
-	WithOperatorType            = MakeOption(func(c *OperatorConfig, v OperatorType) { c.OperatorType = v })
-	WithOperatorName            = MakeOption(func(c *OperatorConfig, v string) { c.OperatorName = v })
-	WithOperatorDescription     = MakeOption(func(c *OperatorConfig, v string) { c.OperatorDescription = v })
+	WithOperatorType            = MakeOption(func(c *OperatorConfig, v OperatorType) { c.Type = string(v) })
+	WithOperatorName            = MakeOption(func(c *OperatorConfig, v string) { c.Name = v })
+	WithOperatorDescription     = MakeOption(func(c *OperatorConfig, v string) { c.Description = v })
 	WithOperatorComponentConfig = MakeOption(func(c *OperatorConfig, value interface{}) {
 		desc, err := LookupOperatorDescriber(value)
 		if err != nil {
@@ -103,26 +79,25 @@ type OperatorConstructFunc func(ctx context.Context, operatorConfig *OperatorCon
 var operatorConstructorRegistry = NewComponentRegistry[*OperatorDescriber, OperatorConstructor]()
 
 func GetOperatorConstructor(operatorDesc *OperatorDescriber) (OperatorConstructor, error) {
-	constructor, err := operatorConstructorRegistry.Get(operatorDesc)
-	if err != nil && operatorDesc.OperatorName != GeneralOperatorName {
-		generalConstructor, generalErr := operatorConstructorRegistry.Get(NewOperatorDescriber(operatorDesc.OperatorType, GeneralOperatorName))
-		if generalErr != nil {
-			return constructor, err
-		}
-		return generalConstructor, nil
-	}
-	return constructor, err
+	return operatorConstructorRegistry.GetWithFallback(
+		operatorDesc,
+		OperatorNameGeneral,
+		func(d *OperatorDescriber) string { return d.Name },
+		func(d *OperatorDescriber) *OperatorDescriber {
+			return NewOperatorDescriber(OperatorType(d.Type), OperatorNameGeneral)
+		},
+	)
 }
 
-func RegisterOperatorConstructor(operatorDesc *OperatorDescriber, operatorConstructor OperatorConstructor) error {
-	return operatorConstructorRegistry.Register(operatorDesc, operatorConstructor)
+func RegisterOperatorConstructor(operatorDesc *OperatorDescriber, operatorConstructor OperatorConstructor, bindValues ...interface{}) error {
+	return operatorConstructorRegistry.Register(operatorDesc, operatorConstructor, bindValues...)
 }
 
 // 注册执行器构造函数；无特定配置时不要传参
 func RegisterOperatorConstructFunc(operatorType OperatorType, operatorName string, operatorConstructFunc OperatorConstructFunc, bindValues ...interface{}) error {
 	operatorDesc := NewOperatorDescriber(operatorType, operatorName)
 	operatorConstructor := NewComponentConstructor[*OperatorDescriber, *OperatorConfig, Operator](operatorDesc, operatorConstructFunc)
-	return operatorConstructorRegistry.Register(operatorDesc, operatorConstructor, bindValues...)
+	return RegisterOperatorConstructor(operatorDesc, operatorConstructor, bindValues...)
 }
 
 func LookupOperatorDescriber(value interface{}) (*OperatorDescriber, error) {
@@ -131,7 +106,7 @@ func LookupOperatorDescriber(value interface{}) (*OperatorDescriber, error) {
 
 func NewOperator(ctx context.Context, operatorOptions ...OperatorOption) (Operator, error) {
 	operatorConfig := NewOperatorConfig(operatorOptions...)
-	operatorConstructor, err := GetOperatorConstructor(NewOperatorDescriber(operatorConfig.OperatorType, operatorConfig.OperatorName))
+	operatorConstructor, err := GetOperatorConstructor(NewOperatorDescriber(OperatorType(operatorConfig.Type), operatorConfig.Name))
 	if err != nil {
 		return nil, err
 	}

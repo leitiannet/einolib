@@ -53,6 +53,27 @@ func (r *ComponentRegistry[D, V]) Get(desc D) (V, error) {
 	return value, nil
 }
 
+// 获取值(先按具体名、再回退到通用名)
+func (r *ComponentRegistry[D, V]) GetWithFallback(
+	desc D,
+	generalName string,
+	getNameFunc func(D) string,
+	getGeneralDescFunc func(D) D,
+) (V, error) {
+	v, err := r.Get(desc)
+	if err == nil {
+		return v, nil
+	}
+	if getNameFunc(desc) == generalName {
+		return v, err
+	}
+	fb, err2 := r.Get(getGeneralDescFunc(desc))
+	if err2 != nil {
+		return v, err
+	}
+	return fb, nil
+}
+
 // 注册组件
 func (r *ComponentRegistry[D, V]) Register(desc D, value V, bindTypes ...interface{}) error {
 	if any(desc) == nil {

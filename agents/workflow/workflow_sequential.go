@@ -7,8 +7,6 @@ import (
 	"github.com/leitiannet/einolib"
 )
 
-const AgentTypeWorkflowSequential einolib.AgentType = "workflow_sequential"
-
 type SequentialWorkflowAgentConfig struct {
 	WorkflowAgentConfigCommon
 }
@@ -39,7 +37,7 @@ func createSequentialAgent(ctx context.Context, agentConfig *einolib.AgentConfig
 }
 
 func init() {
-	if err := einolib.RegisterAgentConstructFunc(AgentTypeWorkflowSequential, einolib.GeneralAgentName, createSequentialAgent, (*SequentialWorkflowAgentConfig)(nil)); err != nil {
-		einolib.GetLogger().Errorf("register agent %s failed: %v", AgentTypeWorkflowSequential, err)
+	if err := einolib.RegisterAgentConstructFunc(einolib.AgentTypeWorkflowSequential, einolib.AgentNameGeneral, createSequentialAgent, (*SequentialWorkflowAgentConfig)(nil)); err != nil {
+		einolib.GetLogger().Errorf("register agent %s failed: %v", einolib.AgentTypeWorkflowSequential, err)
 	}
 }

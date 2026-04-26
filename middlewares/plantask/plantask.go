@@ -9,10 +9,6 @@ import (
 	"github.com/leitiannet/einolib"
 )
 
-const (
-	MiddlewareTypePlanTask einolib.MiddlewareType = "plantask"
-)
-
 type PlanTaskMiddlewareConfig struct {
 	ptmiddleware.Config // 内嵌结构体
 }
@@ -43,7 +39,7 @@ func createPlanTaskMiddleware(ctx context.Context, middlewareConfig *einolib.Mid
 }
 
 func init() {
-	if err := einolib.RegisterMiddlewareConstructFunc(MiddlewareTypePlanTask, einolib.GeneralMiddlewareName, createPlanTaskMiddleware, (*PlanTaskMiddlewareConfig)(nil)); err != nil {
-		einolib.GetLogger().Errorf("register middleware %s failed: %v", MiddlewareTypePlanTask, err)
+	if err := einolib.RegisterMiddlewareConstructFunc(einolib.MiddlewareTypePlanTask, einolib.MiddlewareNameGeneral, createPlanTaskMiddleware, (*PlanTaskMiddlewareConfig)(nil)); err != nil {
+		einolib.GetLogger().Errorf("register middleware %s failed: %v", einolib.MiddlewareTypePlanTask, err)
 	}
 }

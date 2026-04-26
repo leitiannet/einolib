@@ -9,10 +9,6 @@ import (
 	"github.com/leitiannet/einolib"
 )
 
-const (
-	ModelTypeARK einolib.ModelType = "ark"
-)
-
 type ARKModelConfig struct{}
 
 func NewARKModelConfig(arkModelOptions ...ARKModelOption) *ARKModelConfig {
@@ -25,7 +21,7 @@ type ARKModelOption func(*ARKModelConfig)
 
 func NewARKChatModel(ctx context.Context, modelConfig *einolib.ModelConfig, arkModelConfig *ARKModelConfig) (model.ToolCallingChatModel, error) {
 	return ark.NewChatModel(ctx, &ark.ChatModelConfig{
-		Model:   modelConfig.ModelName,
+		Model:   modelConfig.ID,
 		BaseURL: modelConfig.BaseURL,
 		APIKey:  modelConfig.APIKey,
 	})
@@ -40,7 +36,7 @@ func createARKChatModel(ctx context.Context, modelConfig *einolib.ModelConfig, s
 }
 
 func init() {
-	if err := einolib.RegisterModelConstructFunc(ModelTypeARK, createARKChatModel, (*ARKModelConfig)(nil)); err != nil {
-		einolib.GetLogger().Errorf("register model %s failed: %v", ModelTypeARK, err)
+	if err := einolib.RegisterModelConstructFunc(einolib.ModelTypeARK, createARKChatModel, (*ARKModelConfig)(nil)); err != nil {
+		einolib.GetLogger().Errorf("register model %s failed: %v", einolib.ModelTypeARK, err)
 	}
 }

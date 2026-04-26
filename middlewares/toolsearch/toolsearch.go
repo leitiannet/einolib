@@ -10,10 +10,6 @@ import (
 	"github.com/leitiannet/einolib"
 )
 
-const (
-	MiddlewareTypeToolSearch einolib.MiddlewareType = "toolsearch"
-)
-
 type ToolSearchMiddlewareConfig struct {
 	tsmiddleware.Config // 内嵌结构体
 }
@@ -44,7 +40,7 @@ func createToolSearchMiddleware(ctx context.Context, middlewareConfig *einolib.M
 }
 
 func init() {
-	if err := einolib.RegisterMiddlewareConstructFunc(MiddlewareTypeToolSearch, einolib.GeneralMiddlewareName, createToolSearchMiddleware, (*ToolSearchMiddlewareConfig)(nil)); err != nil {
-		einolib.GetLogger().Errorf("register middleware %s failed: %v", MiddlewareTypeToolSearch, err)
+	if err := einolib.RegisterMiddlewareConstructFunc(einolib.MiddlewareTypeToolSearch, einolib.MiddlewareNameGeneral, createToolSearchMiddleware, (*ToolSearchMiddlewareConfig)(nil)); err != nil {
+		einolib.GetLogger().Errorf("register middleware %s failed: %v", einolib.MiddlewareTypeToolSearch, err)
 	}
 }

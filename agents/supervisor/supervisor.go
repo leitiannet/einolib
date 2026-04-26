@@ -10,10 +10,6 @@ import (
 	"github.com/leitiannet/einolib"
 )
 
-const (
-	AgentTypeSupervisor einolib.AgentType = "supervisor"
-)
-
 type SupervisorAgentConfig struct {
 	supervisor.Config // 内嵌supervisor.Config
 }
@@ -55,7 +51,7 @@ func createSupervisorAgent(ctx context.Context, agentConfig *einolib.AgentConfig
 }
 
 func init() {
-	if err := einolib.RegisterAgentConstructFunc(AgentTypeSupervisor, einolib.GeneralAgentName, createSupervisorAgent, (*SupervisorAgentConfig)(nil)); err != nil {
-		einolib.GetLogger().Errorf("register agent %s failed: %v", AgentTypeSupervisor, err)
+	if err := einolib.RegisterAgentConstructFunc(einolib.AgentTypeSupervisor, einolib.AgentNameGeneral, createSupervisorAgent, (*SupervisorAgentConfig)(nil)); err != nil {
+		einolib.GetLogger().Errorf("register agent %s failed: %v", einolib.AgentTypeSupervisor, err)
 	}
 }

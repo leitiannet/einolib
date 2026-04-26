@@ -10,10 +10,6 @@ import (
 	"github.com/leitiannet/einolib"
 )
 
-const (
-	MiddlewareTypeSkill einolib.MiddlewareType = "skill"
-)
-
 type SkillMiddlewareConfig struct {
 	skmiddleware.Config // 内嵌结构体
 }
@@ -62,7 +58,7 @@ func createSkillMiddleware(ctx context.Context, middlewareConfig *einolib.Middle
 }
 
 func init() {
-	if err := einolib.RegisterMiddlewareConstructFunc(MiddlewareTypeSkill, einolib.GeneralMiddlewareName, createSkillMiddleware, (*SkillMiddlewareConfig)(nil)); err != nil {
-		einolib.GetLogger().Errorf("register middleware %s failed: %v", MiddlewareTypeSkill, err)
+	if err := einolib.RegisterMiddlewareConstructFunc(einolib.MiddlewareTypeSkill, einolib.MiddlewareNameGeneral, createSkillMiddleware, (*SkillMiddlewareConfig)(nil)); err != nil {
+		einolib.GetLogger().Errorf("register middleware %s failed: %v", einolib.MiddlewareTypeSkill, err)
 	}
 }

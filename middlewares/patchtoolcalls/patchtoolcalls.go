@@ -9,10 +9,6 @@ import (
 	"github.com/leitiannet/einolib"
 )
 
-const (
-	MiddlewareTypePatchToolCalls einolib.MiddlewareType = "patchtoolcalls"
-)
-
 type PatchToolCallsMiddlewareConfig struct {
 	ptcmiddleware.Config // 内嵌结构体
 }
@@ -44,7 +40,7 @@ func createPatchToolCallsMiddleware(ctx context.Context, middlewareConfig *einol
 }
 
 func init() {
-	if err := einolib.RegisterMiddlewareConstructFunc(MiddlewareTypePatchToolCalls, einolib.GeneralMiddlewareName, createPatchToolCallsMiddleware, (*PatchToolCallsMiddlewareConfig)(nil)); err != nil {
-		einolib.GetLogger().Errorf("register middleware %s failed: %v", MiddlewareTypePatchToolCalls, err)
+	if err := einolib.RegisterMiddlewareConstructFunc(einolib.MiddlewareTypePatchToolCalls, einolib.MiddlewareNameGeneral, createPatchToolCallsMiddleware, (*PatchToolCallsMiddlewareConfig)(nil)); err != nil {
+		einolib.GetLogger().Errorf("register middleware %s failed: %v", einolib.MiddlewareTypePatchToolCalls, err)
 	}
 }

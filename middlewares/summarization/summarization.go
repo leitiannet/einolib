@@ -10,10 +10,6 @@ import (
 	"github.com/leitiannet/einolib"
 )
 
-const (
-	MiddlewareTypeSummarization einolib.MiddlewareType = "summarization"
-)
-
 type SummarizationMiddlewareConfig struct {
 	summiddleware.Config // 内嵌结构体
 }
@@ -55,7 +51,7 @@ func createSummarizationMiddleware(ctx context.Context, middlewareConfig *einoli
 }
 
 func init() {
-	if err := einolib.RegisterMiddlewareConstructFunc(MiddlewareTypeSummarization, einolib.GeneralMiddlewareName, createSummarizationMiddleware, (*SummarizationMiddlewareConfig)(nil)); err != nil {
-		einolib.GetLogger().Errorf("register middleware %s failed: %v", MiddlewareTypeSummarization, err)
+	if err := einolib.RegisterMiddlewareConstructFunc(einolib.MiddlewareTypeSummarization, einolib.MiddlewareNameGeneral, createSummarizationMiddleware, (*SummarizationMiddlewareConfig)(nil)); err != nil {
+		einolib.GetLogger().Errorf("register middleware %s failed: %v", einolib.MiddlewareTypeSummarization, err)
 	}
 }

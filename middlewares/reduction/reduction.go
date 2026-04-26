@@ -10,10 +10,6 @@ import (
 	"github.com/leitiannet/einolib"
 )
 
-const (
-	MiddlewareTypeReduction einolib.MiddlewareType = "reduction"
-)
-
 type ReductionMiddlewareConfig struct {
 	rdmiddleware.Config // 内嵌结构体
 }
@@ -61,7 +57,7 @@ func createReductionMiddleware(ctx context.Context, middlewareConfig *einolib.Mi
 }
 
 func init() {
-	if err := einolib.RegisterMiddlewareConstructFunc(MiddlewareTypeReduction, einolib.GeneralMiddlewareName, createReductionMiddleware, (*ReductionMiddlewareConfig)(nil)); err != nil {
-		einolib.GetLogger().Errorf("register middleware %s failed: %v", MiddlewareTypeReduction, err)
+	if err := einolib.RegisterMiddlewareConstructFunc(einolib.MiddlewareTypeReduction, einolib.MiddlewareNameGeneral, createReductionMiddleware, (*ReductionMiddlewareConfig)(nil)); err != nil {
+		einolib.GetLogger().Errorf("register middleware %s failed: %v", einolib.MiddlewareTypeReduction, err)
 	}
 }

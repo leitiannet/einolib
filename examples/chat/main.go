@@ -5,6 +5,7 @@ import (
 
 	"github.com/cloudwego/eino/schema"
 	"github.com/leitiannet/einolib"
+	"github.com/leitiannet/einolib/builder"
 	_ "github.com/leitiannet/einolib/models"
 )
 
@@ -31,7 +32,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	chatModel, err := einolib.NewLocalChatModel(ctx)
+	chatModel, err := builder.NewModelBuilder(builder.DefaultLocalModelType).Build(ctx)
 	if err != nil {
 		panic(err)
 	}

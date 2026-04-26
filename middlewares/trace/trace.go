@@ -8,10 +8,6 @@ import (
 	"github.com/leitiannet/einolib"
 )
 
-const (
-	MiddlewareTypeTrace einolib.MiddlewareType = "trace"
-)
-
 type TraceMiddlewareConfig struct {
 	Prefix string
 }
@@ -42,7 +38,7 @@ func createTraceMiddleware(ctx context.Context, middlewareConfig *einolib.Middle
 }
 
 func init() {
-	if err := einolib.RegisterMiddlewareConstructFunc(MiddlewareTypeTrace, einolib.GeneralMiddlewareName, createTraceMiddleware, (*TraceMiddlewareConfig)(nil)); err != nil {
-		einolib.GetLogger().Errorf("register middleware %s failed: %v", MiddlewareTypeTrace, err)
+	if err := einolib.RegisterMiddlewareConstructFunc(einolib.MiddlewareTypeTrace, einolib.MiddlewareNameGeneral, createTraceMiddleware, (*TraceMiddlewareConfig)(nil)); err != nil {
+		einolib.GetLogger().Errorf("register middleware %s failed: %v", einolib.MiddlewareTypeTrace, err)
 	}
 }

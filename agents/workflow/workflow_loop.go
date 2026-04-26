@@ -7,8 +7,6 @@ import (
 	"github.com/leitiannet/einolib"
 )
 
-const AgentTypeWorkflowLoop einolib.AgentType = "workflow_loop"
-
 type LoopWorkflowAgentConfig struct {
 	WorkflowAgentConfigCommon
 	MaxIterations int // 最大迭代次数
@@ -64,7 +62,7 @@ func createLoopAgent(ctx context.Context, agentConfig *einolib.AgentConfig, spec
 }
 
 func init() {
-	if err := einolib.RegisterAgentConstructFunc(AgentTypeWorkflowLoop, einolib.GeneralAgentName, createLoopAgent, (*LoopWorkflowAgentConfig)(nil)); err != nil {
-		einolib.GetLogger().Errorf("register agent %s failed: %v", AgentTypeWorkflowLoop, err)
+	if err := einolib.RegisterAgentConstructFunc(einolib.AgentTypeWorkflowLoop, einolib.AgentNameGeneral, createLoopAgent, (*LoopWorkflowAgentConfig)(nil)); err != nil {
+		einolib.GetLogger().Errorf("register agent %s failed: %v", einolib.AgentTypeWorkflowLoop, err)
 	}
 }

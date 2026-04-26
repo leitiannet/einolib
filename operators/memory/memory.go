@@ -8,10 +8,6 @@ import (
 	"github.com/leitiannet/einolib"
 )
 
-const (
-	OperatorTypeMemory einolib.OperatorType = "memory"
-)
-
 type MemoryOperatorConfig struct{}
 
 func NewMemoryOperatorConfig(memoryOperatorOptions ...MemoryOperatorOption) *MemoryOperatorConfig {
@@ -35,7 +31,7 @@ func createMemoryOperator(ctx context.Context, operatorConfig *einolib.OperatorC
 }
 
 func init() {
-	if err := einolib.RegisterOperatorConstructFunc(OperatorTypeMemory, einolib.GeneralOperatorName, createMemoryOperator, (*MemoryOperatorConfig)(nil)); err != nil {
-		einolib.GetLogger().Errorf("register operator %s failed: %v", OperatorTypeMemory, err)
+	if err := einolib.RegisterOperatorConstructFunc(einolib.OperatorTypeMemory, einolib.OperatorNameGeneral, createMemoryOperator, (*MemoryOperatorConfig)(nil)); err != nil {
+		einolib.GetLogger().Errorf("register operator %s failed: %v", einolib.OperatorTypeMemory, err)
 	}
 }

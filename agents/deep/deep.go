@@ -12,10 +12,6 @@ import (
 	"github.com/leitiannet/einolib"
 )
 
-const (
-	AgentTypeDeep einolib.AgentType = "deep"
-)
-
 type DeepAgentConfig struct {
 	deep.Config // 内嵌deep.Config
 }
@@ -72,7 +68,7 @@ func createDeepAgent(ctx context.Context, agentConfig *einolib.AgentConfig, spec
 }
 
 func init() {
-	if err := einolib.RegisterAgentConstructFunc(AgentTypeDeep, einolib.GeneralAgentName, createDeepAgent, (*DeepAgentConfig)(nil)); err != nil {
-		einolib.GetLogger().Errorf("register agent %s failed: %v", AgentTypeDeep, err)
+	if err := einolib.RegisterAgentConstructFunc(einolib.AgentTypeDeep, einolib.AgentNameGeneral, createDeepAgent, (*DeepAgentConfig)(nil)); err != nil {
+		einolib.GetLogger().Errorf("register agent %s failed: %v", einolib.AgentTypeDeep, err)
 	}
 }

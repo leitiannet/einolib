@@ -8,10 +8,6 @@ import (
 	"github.com/leitiannet/einolib"
 )
 
-const (
-	MiddlewareTypeSafeTool einolib.MiddlewareType = "safetool"
-)
-
 type SafeToolMiddlewareConfig struct {
 	ErrorFormat string
 }
@@ -44,7 +40,7 @@ func createSafeToolMiddleware(ctx context.Context, middlewareConfig *einolib.Mid
 }
 
 func init() {
-	if err := einolib.RegisterMiddlewareConstructFunc(MiddlewareTypeSafeTool, einolib.GeneralMiddlewareName, createSafeToolMiddleware, (*SafeToolMiddlewareConfig)(nil)); err != nil {
-		einolib.GetLogger().Errorf("register middleware %s failed: %v", MiddlewareTypeSafeTool, err)
+	if err := einolib.RegisterMiddlewareConstructFunc(einolib.MiddlewareTypeSafeTool, einolib.MiddlewareNameGeneral, createSafeToolMiddleware, (*SafeToolMiddlewareConfig)(nil)); err != nil {
+		einolib.GetLogger().Errorf("register middleware %s failed: %v", einolib.MiddlewareTypeSafeTool, err)
 	}
 }

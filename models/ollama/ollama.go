@@ -9,10 +9,6 @@ import (
 	"github.com/leitiannet/einolib"
 )
 
-const (
-	ModelTypeOllama einolib.ModelType = "ollama"
-)
-
 type OllamaModelConfig struct{}
 
 func NewOllamaModelConfig(ollamaModelOptions ...OllamaModelOption) *OllamaModelConfig {
@@ -25,7 +21,7 @@ type OllamaModelOption func(*OllamaModelConfig)
 
 func NewOllamaChatModel(ctx context.Context, modelConfig *einolib.ModelConfig, ollamaModelConfig *OllamaModelConfig) (model.ToolCallingChatModel, error) {
 	return ollama.NewChatModel(ctx, &ollama.ChatModelConfig{
-		Model:   modelConfig.ModelName,
+		Model:   modelConfig.ID,
 		BaseURL: modelConfig.BaseURL,
 	})
 }
@@ -39,7 +35,7 @@ func createOllamaChatModel(ctx context.Context, modelConfig *einolib.ModelConfig
 }
 
 func init() {
-	if err := einolib.RegisterModelConstructFunc(ModelTypeOllama, createOllamaChatModel, (*OllamaModelConfig)(nil)); err != nil {
-		einolib.GetLogger().Errorf("register model %s failed: %v", ModelTypeOllama, err)
+	if err := einolib.RegisterModelConstructFunc(einolib.ModelTypeOllama, createOllamaChatModel, (*OllamaModelConfig)(nil)); err != nil {
+		einolib.GetLogger().Errorf("register model %s failed: %v", einolib.ModelTypeOllama, err)
 	}
 }

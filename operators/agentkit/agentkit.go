@@ -9,10 +9,6 @@ import (
 	"github.com/leitiannet/einolib"
 )
 
-const (
-	OperatorTypeAgentKit einolib.OperatorType = "agentkit"
-)
-
 type AgentKitOperatorConfig struct {
 	einoagentkit.Config // 内嵌结构体
 }
@@ -54,7 +50,7 @@ func createAgentKitOperator(ctx context.Context, operatorConfig *einolib.Operato
 }
 
 func init() {
-	if err := einolib.RegisterOperatorConstructFunc(OperatorTypeAgentKit, einolib.GeneralOperatorName, createAgentKitOperator, (*AgentKitOperatorConfig)(nil)); err != nil {
-		einolib.GetLogger().Errorf("register operator %s failed: %v", OperatorTypeAgentKit, err)
+	if err := einolib.RegisterOperatorConstructFunc(einolib.OperatorTypeAgentKit, einolib.OperatorNameGeneral, createAgentKitOperator, (*AgentKitOperatorConfig)(nil)); err != nil {
+		einolib.GetLogger().Errorf("register operator %s failed: %v", einolib.OperatorTypeAgentKit, err)
 	}
 }

@@ -11,10 +11,6 @@ import (
 	"github.com/leitiannet/einolib"
 )
 
-const (
-	AgentTypeChatModel einolib.AgentType = "chatmodel"
-)
-
 type ChatModelAgentConfig struct {
 	adk.ChatModelAgentConfig // 内嵌adk.ChatModelAgentConfig
 }
@@ -58,7 +54,7 @@ func createChatModelAgent(ctx context.Context, agentConfig *einolib.AgentConfig,
 }
 
 func init() {
-	if err := einolib.RegisterAgentConstructFunc(AgentTypeChatModel, einolib.GeneralAgentName, createChatModelAgent, (*ChatModelAgentConfig)(nil)); err != nil {
-		einolib.GetLogger().Errorf("register agent %s failed: %v", AgentTypeChatModel, err)
+	if err := einolib.RegisterAgentConstructFunc(einolib.AgentTypeChatModel, einolib.AgentNameGeneral, createChatModelAgent, (*ChatModelAgentConfig)(nil)); err != nil {
+		einolib.GetLogger().Errorf("register agent %s failed: %v", einolib.AgentTypeChatModel, err)
 	}
 }

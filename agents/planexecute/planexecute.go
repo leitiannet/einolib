@@ -12,10 +12,6 @@ import (
 	"github.com/leitiannet/einolib"
 )
 
-const (
-	AgentTypePlanExecute einolib.AgentType = "planexecute"
-)
-
 type PlanExecuteAgentConfig struct {
 	planexecute.Config                              // 内嵌planexecute.Config
 	PlannerConfig      *planexecute.PlannerConfig   // 规划器配置
@@ -179,7 +175,7 @@ func createPlanExecuteAgent(ctx context.Context, agentConfig *einolib.AgentConfi
 }
 
 func init() {
-	if err := einolib.RegisterAgentConstructFunc(AgentTypePlanExecute, einolib.GeneralAgentName, createPlanExecuteAgent, (*PlanExecuteAgentConfig)(nil)); err != nil {
-		einolib.GetLogger().Errorf("register agent %s failed: %v", AgentTypePlanExecute, err)
+	if err := einolib.RegisterAgentConstructFunc(einolib.AgentTypePlanExecute, einolib.AgentNameGeneral, createPlanExecuteAgent, (*PlanExecuteAgentConfig)(nil)); err != nil {
+		einolib.GetLogger().Errorf("register agent %s failed: %v", einolib.AgentTypePlanExecute, err)
 	}
 }

@@ -8,10 +8,6 @@ import (
 	"github.com/leitiannet/einolib"
 )
 
-const (
-	OperatorTypeLocal einolib.OperatorType = "local"
-)
-
 type LocalOperatorConfig struct {
 	einolocal.Config // 内嵌结构体
 }
@@ -41,7 +37,7 @@ func createLocalOperator(ctx context.Context, operatorConfig *einolib.OperatorCo
 }
 
 func init() {
-	if err := einolib.RegisterOperatorConstructFunc(OperatorTypeLocal, einolib.GeneralOperatorName, createLocalOperator, (*LocalOperatorConfig)(nil)); err != nil {
-		einolib.GetLogger().Errorf("register operator %s failed: %v", OperatorTypeLocal, err)
+	if err := einolib.RegisterOperatorConstructFunc(einolib.OperatorTypeLocal, einolib.OperatorNameGeneral, createLocalOperator, (*LocalOperatorConfig)(nil)); err != nil {
+		einolib.GetLogger().Errorf("register operator %s failed: %v", einolib.OperatorTypeLocal, err)
 	}
 }

@@ -2,8 +2,6 @@ package einolib
 
 import (
 	"context"
-	"fmt"
-	"strings"
 
 	"github.com/cloudwego/eino/adk"
 )
@@ -11,55 +9,40 @@ import (
 // 中间件类型
 type MiddlewareType string
 
-// 其他中间件类型由middlewares子包定义
-const MiddlewareTypeUnknown MiddlewareType = "" // 未知类型中间件
+const (
+	MiddlewareTypeAgentsMD       MiddlewareType = "agentsmd"
+	MiddlewareTypeFileSystem     MiddlewareType = "filesystem"
+	MiddlewareTypePatchToolCalls MiddlewareType = "patchtoolcalls"
+	MiddlewareTypePlanTask       MiddlewareType = "plantask"
+	MiddlewareTypeReduction      MiddlewareType = "reduction"
+	MiddlewareTypeSafeTool       MiddlewareType = "safetool"
+	MiddlewareTypeSkill          MiddlewareType = "skill"
+	MiddlewareTypeSummarization  MiddlewareType = "summarization"
+	MiddlewareTypeToolSearch     MiddlewareType = "toolsearch"
+	MiddlewareTypeTrace          MiddlewareType = "trace"
+)
 
-const GeneralMiddlewareName = "*" // 通用中间件名称
+const MiddlewareNameGeneral = ComponentNameGeneral // 通用中间件名称
 
 // 中间件描述
 type MiddlewareDescriber struct {
-	MiddlewareType MiddlewareType // 中间件类型
-	MiddlewareName string         // 中间件名称
+	componentDescriber
 }
 
 func NewMiddlewareDescriber(middlewareType MiddlewareType, middlewareName string) *MiddlewareDescriber {
 	return &MiddlewareDescriber{
-		MiddlewareType: middlewareType,
-		MiddlewareName: middlewareName,
+		componentDescriber: NewComponentDescriber(ComponentOfADKMiddleware, string(middlewareType), middlewareName),
 	}
-}
-
-func (md *MiddlewareDescriber) String() string {
-	return fmt.Sprintf("%s:%s", md.MiddlewareType, md.MiddlewareName)
-}
-
-func (md *MiddlewareDescriber) Key() string {
-	return strings.ToLower(md.String())
-}
-
-func (md *MiddlewareDescriber) Validate() error {
-	if md.MiddlewareType == MiddlewareTypeUnknown {
-		return fmt.Errorf("middlewareType invalid: %q", md.MiddlewareType)
-	}
-	if md.MiddlewareName == "" {
-		return fmt.Errorf("middlewareName invalid: %q", md.MiddlewareName)
-	}
-	return nil
 }
 
 // 中间件配置
 type MiddlewareConfig struct {
-	ComponentConfig                      // 特定配置
-	MiddlewareType        MiddlewareType // 中间件类型
-	MiddlewareName        string         // 中间件名称
-	MiddlewareDescription string         // 中间件描述
+	componentConfig // 公共元数据
 }
 
 func NewMiddlewareConfig(middlewareOptions ...MiddlewareOption) *MiddlewareConfig {
 	middlewareConfig := &MiddlewareConfig{
-		ComponentConfig: ComponentConfig{
-			ConfigMap: NewSyncMap(),
-		},
+		componentConfig: NewComponentConfig(ComponentOfADKMiddleware, "", ""),
 	}
 	ApplyOptions(middlewareConfig, middlewareOptions)
 	return middlewareConfig
@@ -69,9 +52,9 @@ func NewMiddlewareConfig(middlewareOptions ...MiddlewareOption) *MiddlewareConfi
 type MiddlewareOption func(middlewareConfig *MiddlewareConfig)
 
 var (
-	WithMiddlewareType            = MakeOption(func(c *MiddlewareConfig, v MiddlewareType) { c.MiddlewareType = v })
-	WithMiddlewareName            = MakeOption(func(c *MiddlewareConfig, v string) { c.MiddlewareName = v })
-	WithMiddlewareDescription     = MakeOption(func(c *MiddlewareConfig, v string) { c.MiddlewareDescription = v })
+	WithMiddlewareType            = MakeOption(func(c *MiddlewareConfig, v MiddlewareType) { c.Type = string(v) })
+	WithMiddlewareName            = MakeOption(func(c *MiddlewareConfig, v string) { c.Name = v })
+	WithMiddlewareDescription     = MakeOption(func(c *MiddlewareConfig, v string) { c.Description = v })
 	WithMiddlewareComponentConfig = MakeOption(func(c *MiddlewareConfig, value interface{}) {
 		desc, err := LookupMiddlewareDescriber(value)
 		if err != nil {
@@ -96,26 +79,25 @@ type MiddlewareConstructFunc func(ctx context.Context, middlewareConfig *Middlew
 var middlewareConstructorRegistry = NewComponentRegistry[*MiddlewareDescriber, MiddlewareConstructor]()
 
 func GetMiddlewareConstructor(middlewareDesc *MiddlewareDescriber) (MiddlewareConstructor, error) {
-	constructor, err := middlewareConstructorRegistry.Get(middlewareDesc)
-	if err != nil && middlewareDesc.MiddlewareName != GeneralMiddlewareName {
-		generalConstructor, generalErr := middlewareConstructorRegistry.Get(NewMiddlewareDescriber(middlewareDesc.MiddlewareType, GeneralMiddlewareName))
-		if generalErr != nil {
-			return constructor, err
-		}
-		return generalConstructor, nil
-	}
-	return constructor, err
+	return middlewareConstructorRegistry.GetWithFallback(
+		middlewareDesc,
+		MiddlewareNameGeneral,
+		func(d *MiddlewareDescriber) string { return d.Name },
+		func(d *MiddlewareDescriber) *MiddlewareDescriber {
+			return NewMiddlewareDescriber(MiddlewareType(d.Type), MiddlewareNameGeneral)
+		},
+	)
 }
 
-func RegisterMiddlewareConstructor(middlewareDesc *MiddlewareDescriber, middlewareConstructor MiddlewareConstructor) error {
-	return middlewareConstructorRegistry.Register(middlewareDesc, middlewareConstructor)
+func RegisterMiddlewareConstructor(middlewareDesc *MiddlewareDescriber, middlewareConstructor MiddlewareConstructor, bindValues ...interface{}) error {
+	return middlewareConstructorRegistry.Register(middlewareDesc, middlewareConstructor, bindValues...)
 }
 
 // 注册中间件构造函数；无特定配置时不要传参
 func RegisterMiddlewareConstructFunc(middlewareType MiddlewareType, middlewareName string, middlewareConstructFunc MiddlewareConstructFunc, bindValues ...interface{}) error {
 	middlewareDesc := NewMiddlewareDescriber(middlewareType, middlewareName)
 	middlewareConstructor := NewComponentConstructor[*MiddlewareDescriber, *MiddlewareConfig, adk.ChatModelAgentMiddleware](middlewareDesc, middlewareConstructFunc)
-	return middlewareConstructorRegistry.Register(middlewareDesc, middlewareConstructor, bindValues...)
+	return RegisterMiddlewareConstructor(middlewareDesc, middlewareConstructor, bindValues...)
 }
 
 func LookupMiddlewareDescriber(value interface{}) (*MiddlewareDescriber, error) {
@@ -124,7 +106,7 @@ func LookupMiddlewareDescriber(value interface{}) (*MiddlewareDescriber, error) 
 
 func NewMiddleware(ctx context.Context, middlewareOptions ...MiddlewareOption) (adk.ChatModelAgentMiddleware, error) {
 	middlewareConfig := NewMiddlewareConfig(middlewareOptions...)
-	middlewareConstructor, err := GetMiddlewareConstructor(NewMiddlewareDescriber(middlewareConfig.MiddlewareType, middlewareConfig.MiddlewareName))
+	middlewareConstructor, err := GetMiddlewareConstructor(NewMiddlewareDescriber(MiddlewareType(middlewareConfig.Type), middlewareConfig.Name))
 	if err != nil {
 		return nil, err
 	}
